@@ -240,6 +240,19 @@ class FallbackChainExecutor:
                 "y operativo. Revisa ai.providers.*.enabled en settings.yaml."
             )
 
+        if not isinstance(prompt, str):
+            # Defensa: algunos callers pueden pasar listas/tuplas de segmentos;
+            # los providers esperan str. Normalizar aquí para toda la cadena.
+            self.logger.warning(
+                "FallbackChainExecutor: prompt no es str (tipo=%s); "
+                "convirtiendo a texto. Revisar el caller.",
+                type(prompt).__name__,
+            )
+            if isinstance(prompt, (list, tuple)):
+                prompt = "\n".join(str(p) for p in prompt)
+            else:
+                prompt = str(prompt)
+
         errors: list[tuple[str, str]] = []
         for name in order:
             provider = self.providers.get(name)

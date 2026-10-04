@@ -1157,7 +1157,7 @@ class DavinciApp(ctk.CTk):
 
                     job_folder = prepare_job_folder(output_folder, media.stem, media.stem)
                     _safe_write_text(job_folder / "resultado_youtube.txt", build_report(yt_legacy))
-                    _safe_write_text(job_folder / "transcripcion.txt", build_report(yt_legacy))
+                    _safe_write_text(job_folder / "transcripcion.txt", transcript_ai)
                     _safe_write_text(
                         job_folder / "transcripcion_raw.txt", transcription.get("text", "")
                     )

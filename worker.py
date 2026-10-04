@@ -153,7 +153,7 @@ class ProcessingWorker(threading.Thread):
 
             report = build_report(youtube_data)
             _safe_write_text(job_folder / "resultado_youtube.txt", report)
-            _safe_write_text(job_folder / "transcripcion.txt", report)
+            _safe_write_text(job_folder / "transcripcion.txt", transcript_for_ai)
             _safe_write_text(
                 job_folder / "transcripcion_raw.txt",
                 transcription.get("text", ""),
