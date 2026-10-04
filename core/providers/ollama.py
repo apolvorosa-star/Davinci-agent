@@ -79,6 +79,11 @@ class OllamaProvider(BaseProvider):
                 "keep_alive": self.config.extras.get("keep_alive", "30m"),
                 "options": {
                     "temperature": float(self.config.temperature),
+                    # Ventana de contexto: Ollama por defecto limita a 2048
+                    # tokens y devuelve HTTP 400 con prompts largos
+                    # (transcripción + instrucciones). Configurable vía
+                    # extras.num_ctx.
+                    "num_ctx": int(self.config.extras.get("num_ctx", 8192)),
                 },
             }
             sys_msg = self._effective_system(system_prompt)
