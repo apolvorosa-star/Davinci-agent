@@ -1,0 +1,38 @@
+# Secretos y config local de usuario
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+*.p12
+*.cer
+config/settings.user.yaml
+
+# Datos de ejecución
+output/
+input/
+.tmp/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node / Electron builds
+node_modules/
+dist/
+build/
+out/
+
+# SO / IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*.lnk
+nul

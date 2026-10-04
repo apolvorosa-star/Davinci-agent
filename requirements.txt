@@ -1,0 +1,29 @@
+# Core
+requests>=2.31.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# IA local Whisper
+openai-whisper>=20231117
+torch>=2.0.0
+numpy>=1.24.0
+pydub>=0.25.1
+
+# Proveedores de IA - NOTA:
+# Nuestra implementación usa requests para TODOS los proveedores (Ollama, OpenAI,
+# Anthropic, Google, OpenRouter, Mistral, LM Studio, Groq...) por lo que los
+# SDKs oficiales NO son obligatorios. Solo instálalos si quieres usarlos
+# directamente en desarrollos futuros.
+
+# Descomenta los siguientes si quieres usar SDKs oficiales:
+# openai>=1.30.0
+# anthropic>=0.30.0
+# google-generativeai>=0.5.0
+
+# Ollama (SDK Python - opcional, nuestra implementación usa la API HTTP local)
+# ollama>=0.2.0
+
+# UI / Empaquetado / Distribución
+customtkinter>=5.2.2
+windnd>=1.0.1
+pyinstaller>=6.6.0

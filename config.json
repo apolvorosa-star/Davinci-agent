@@ -1,0 +1,37 @@
+{
+  "app": {
+    "name": "DaVinci Agent",
+    "version": "1.0.0",
+    "language": "es",
+    "environment": "development"
+  },
+  "social_media": {
+    "enabled": true,
+    "platforms": {
+      "youtube": { "enabled": true, "seo_mode": "aggressive" },
+      "instagram": { "enabled": true, "reels_enabled": true, "stories_count": 7 },
+      "tiktok": { "enabled": true, "max_hashtags": 8 },
+      "twitter_x": { "enabled": true, "max_thread_length": 12 },
+      "facebook": { "enabled": true, "audience_focus": "page" },
+      "linkedin": { "enabled": true, "style": "story_plus_lessons" }
+    }
+  },
+  "ai": {
+    "default_provider": "ollama",
+    "fallback_enabled": true
+  },
+  "ui": {
+    "theme": "dark",
+    "accent_color": "#7c3aed",
+    "font_family": "Inter, system-ui, sans-serif"
+  },
+  "paths": {
+    "input": "./input",
+    "output": "./output",
+    "temp": "./.tmp"
+  },
+  "notifications": {
+    "sound_enabled": true,
+    "toast_duration_ms": 5000
+  }
+}

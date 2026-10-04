@@ -1,0 +1,149 @@
+app:
+  name: DaVinci Agent
+  version: 1.0.0
+  tagline: Sistema profesional de transcripción + contenido multi-plataforma para
+    redes sociales
+paths:
+  input: ./input
+  output: ./output
+  temp: ./.tmp
+models:
+  whisper:
+    name: base
+    language: es
+parameters:
+  chunk_duration: 30
+  max_context: 4096
+watcher:
+  interval_seconds: 10
+ai:
+  default_provider: openai_compatible
+  timeout: 600
+  max_retries: 3
+  temperature: 0.2
+  providers:
+    ollama:
+      enabled: false
+      url: http://localhost:11434
+      model: llama3
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español. Responde con precisión, creatividad y rigor; nunca inventes
+        datos que no aparezcan en el contexto. Cumples estrictamente los límites de
+        caracteres y hashtags de cada plataforma.
+
+        '
+    openai:
+      enabled: false
+      api_key: ${OPENAI_API_KEY}
+      base_url: https://api.openai.com/v1
+      model: gpt-4o-mini
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español. Responde con precisión, creatividad y rigor.
+
+        '
+    anthropic:
+      enabled: false
+      api_key: ${ANTHROPIC_API_KEY}
+      base_url: https://api.anthropic.com
+      model: claude-3-haiku-20240307
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español.
+
+        '
+    google:
+      enabled: false
+      api_key: ${GOOGLE_API_KEY}
+      model: gemini-1.5-flash-latest
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español.
+
+        '
+    openrouter:
+      enabled: false
+      api_key: ${OPENROUTER_API_KEY}
+      base_url: https://openrouter.ai/api/v1
+      model: openai/gpt-4o-mini
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español.
+
+        '
+    mistral:
+      enabled: false
+      api_key: ${MISTRAL_API_KEY}
+      base_url: https://api.mistral.ai/v1
+      model: mistral-small-latest
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español.
+
+        '
+    openai_compatible:
+      enabled: true
+      api_key: ''
+      base_url: http://localhost:3001/v1
+      model: auto
+      system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
+        sociales en español.
+
+        '
+  fallback_chain:
+  - openai_compatible
+social_media:
+  defaults:
+    language: es
+    tone: equilibrado
+    max_hashtags: 15
+    cta: ¡Síguenos para más contenido de valor y guarda esta publicación para no perderlo!
+    extra_rules:
+    - Nunca inventes cifras, fechas ni datos que no aparezcan en la transcripción.
+    - 'Prioriza los puntos clave: el contenido debe ser accionable y útil.'
+    - Evita jergon innecesario; habla claro, directo, profesional.
+  platforms:
+    youtube:
+      enabled: true
+      max_hashtags: 15
+      tone: equilibrado
+      extra_rules:
+      - El título debe incluir palabra clave en los primeros 40 caracteres.
+      - La descripción debe tener al menos 250 palabras.
+      - Capítulos solo si hay secciones claras en la transcripción.
+    instagram:
+      enabled: true
+      max_hashtags: 30
+      tone: cercano-emocional
+      extra_rules:
+      - 'Feed: storytelling personal + valor, no solo información.'
+      - 'Reels: primer hook tiene que parar el scroll en 3 segundos.'
+      - 'Stories: secuencia narrativa Hook → Valor → CTA.'
+    tiktok:
+      enabled: true
+      max_hashtags: 8
+      tone: juvenil-directo
+      extra_rules:
+      - Hook en los primeros 0-3 segundos; sin rollo. Pregunta o contraste.
+      - 5-8 hashtags; mezcla 3 trending + 3 niche + 2 branded.
+      - 'Scene cuts ritmo rápido: cada 2-3 segundos un plano nuevo.'
+    twitter_x:
+      enabled: true
+      max_hashtags: 3
+      tone: contundente-claro
+      extra_rules:
+      - Cada tweet individual NUNCA supera 280 caracteres. NI UNO MÁS.
+      - 'Hilo: main_tweet hook + 3-12 tweets de desarrollo + tweet CTA.'
+      - Pide opinión/comentario; nunca pidas RT o like explícitamente.
+    facebook:
+      enabled: true
+      max_hashtags: 10
+      tone: conversacional-experto
+      extra_rules:
+      - Párrafos cortos, 2-3 frases máximo. Lista bullet con emojis.
+      - 'Valor masivo: el lector debe sentir que DEBE compartirlo.'
+      - El primer comentario pinneado añade valor o link.
+    linkedin:
+      enabled: true
+      max_hashtags: 8
+      tone: profesional-reflexivo
+      extra_rules:
+      - 'Estructura: historia personal → reflexión → lecciones accionables → pregunta
+        abierta.'
+      - Máximo 1 emoji por sección; evita tono casual excesivo.
+      - Pide una opinión o experiencia personal en los comentarios.

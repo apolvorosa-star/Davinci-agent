@@ -1,0 +1,1 @@
+export const assets = { // Rutas de assets };

@@ -1,0 +1,50 @@
+{
+  "name": "davinci-agent",
+  "version": "1.0.0",
+  "description": "DaVinci Agent — Sistema profesional de transcripción IA + generación de contenido multi-plataforma para redes sociales (YouTube, Instagram, TikTok, X, Facebook, LinkedIn)",
+  "author": "Orizon Studio Suite",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "build": "webpack --mode production",
+    "lint": "eslint src --ext .js,.jsx",
+    "py:cli": "python main.py",
+    "py:watch": "python watcher.py",
+    "py:gui": "python app.py"
+  },
+  "keywords": [
+    "ai",
+    "whisper",
+    "transcription",
+    "social-media",
+    "youtube-seo",
+    "instagram",
+    "tiktok",
+    "linkedin",
+    "content-generator",
+    "ollama"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4",
+    "eslint": "^8.57.0"
+  },
+  "os": [
+    "win32",
+    "linux",
+    "darwin"
+  ]
+}
