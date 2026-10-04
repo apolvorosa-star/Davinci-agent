@@ -17,15 +17,16 @@ parameters:
 watcher:
   interval_seconds: 10
 ai:
-  default_provider: openai_compatible
+  default_provider: ollama
   timeout: 600
   max_retries: 3
   temperature: 0.2
   providers:
     ollama:
-      enabled: false
+      enabled: true
       url: http://localhost:11434
-      model: llama3
+      model: qwen2.5-coder:7b
+      keep_alive: 30m
       system_prompt: 'Eres un experto en marketing de contenidos y SEO para redes
         sociales en español. Responde con precisión, creatividad y rigor; nunca inventes
         datos que no aparezcan en el contexto. Cumples estrictamente los límites de
@@ -86,6 +87,7 @@ ai:
 
         '
   fallback_chain:
+  - ollama
   - openai_compatible
 social_media:
   defaults:

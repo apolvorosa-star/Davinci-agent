@@ -74,6 +74,9 @@ class OllamaProvider(BaseProvider):
                 "model": self.model,
                 "prompt": prompt,
                 "stream": False,
+                # Mantener el modelo en VRAM entre llamadas (evita los ~10s de
+                # carga de cada petición). Configurable vía extras.keep_alive.
+                "keep_alive": self.config.extras.get("keep_alive", "30m"),
                 "options": {
                     "temperature": float(self.config.temperature),
                 },
