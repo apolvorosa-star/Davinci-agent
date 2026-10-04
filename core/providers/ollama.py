@@ -83,7 +83,7 @@ class OllamaProvider(BaseProvider):
                     # tokens y devuelve HTTP 400 con prompts largos
                     # (transcripción + instrucciones). Configurable vía
                     # extras.num_ctx.
-                    "num_ctx": int(self.config.extras.get("num_ctx", 8192)),
+                    "num_ctx": int(self.config.extras.get("num_ctx", 16384)),
                 },
             }
             sys_msg = self._effective_system(system_prompt)
@@ -106,7 +106,15 @@ class OllamaProvider(BaseProvider):
                     **dict(extra_headers),
                 },
             )
-            response.raise_for_status()
+            try:
+                response.raise_for_status()
+            except requests.HTTPError as exc:
+                # Ollama explica el motivo en el body (p.ej. "model requires
+                # more context"): incluirlo para diagnosticar los 400.
+                raise RuntimeError(
+                    f"[{self.PROVIDER_ID}:{self.name}] HTTP {response.status_code} "
+                    f"en {url} - {response.text[:300]}"
+                ) from exc
             data = response.json()
             text = data.get("response", "")
             if not isinstance(text, str):
