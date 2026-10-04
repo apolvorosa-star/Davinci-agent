@@ -1,5 +1,5 @@
-from transformers import pipeline
 import torch
+from transformers import pipeline
 
 print("Cargando Whisper Large V3 Turbo desde Hugging Face...")
 # Inicializa el pipeline de transcripción optimizado
@@ -7,7 +7,7 @@ pipe = pipeline(
     "automatic-speech-recognition",
     model="openai/whisper-large-v3-turbo",
     torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
-    device="cuda" if torch.cuda.is_available() else "cpu"
+    device="cuda" if torch.cuda.is_available() else "cpu",
 )
 
 print("¡Modelo cargado con éxito! Probando transcripción...")

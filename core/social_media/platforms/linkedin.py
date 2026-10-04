@@ -1,4 +1,5 @@
 """Plataforma LinkedIn — publicaciones profesionales, artículos y páginas de empresa."""
+
 from __future__ import annotations
 
 import json
@@ -20,19 +21,36 @@ class LinkedInContent(PlatformContent):
     audience: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(platform="linkedin", **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__})
+        super().__init__(
+            platform="linkedin",
+            **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__},
+        )
         self.headline = str(kwargs.get("headline") or kwargs.get("title") or "").strip()
         self.opening = str(kwargs.get("opening") or "").strip()
-        self.core_story = str(kwargs.get("core_story") or kwargs.get("body") or kwargs.get("post") or "").strip()
-        self.key_lessons = [str(x).strip() for x in (kwargs.get("key_lessons") or kwargs.get("lessons") or kwargs.get("takeaways") or []) if str(x).strip()]
+        self.core_story = str(
+            kwargs.get("core_story") or kwargs.get("body") or kwargs.get("post") or ""
+        ).strip()
+        self.key_lessons = [
+            str(x).strip()
+            for x in (
+                kwargs.get("key_lessons") or kwargs.get("lessons") or kwargs.get("takeaways") or []
+            )
+            if str(x).strip()
+        ]
         self.closing_cta = str(kwargs.get("closing_cta") or kwargs.get("cta") or "").strip()
-        self.tags = [str(x).strip() for x in (kwargs.get("tags") or kwargs.get("hashtags") or []) if str(x).strip()]
+        self.tags = [
+            str(x).strip()
+            for x in (kwargs.get("tags") or kwargs.get("hashtags") or [])
+            if str(x).strip()
+        ]
         aud = kwargs.get("audience") or {}
         self.audience = dict(aud) if isinstance(aud, dict) else {}
         self.title = self.headline
         body_parts = [self.opening, self.core_story]
         if self.key_lessons:
-            body_parts.append("Lecciones clave:\n" + "\n".join(f"  - {l}" for l in self.key_lessons))
+            body_parts.append(
+                "Lecciones clave:\n" + "\n".join(f"  - {lesson}" for lesson in self.key_lessons)
+            )
         if self.closing_cta:
             body_parts.append(self.closing_cta)
         self.body = "\n\n".join(p for p in body_parts if p)
@@ -139,7 +157,7 @@ class LinkedInPlatform(BaseSocialPlatform):
                     depth -= 1
                     if depth == 0 and start_idx != -1:
                         try:
-                            return json.loads(text[start_idx: idx + 1])
+                            return json.loads(text[start_idx : idx + 1])
                         except json.JSONDecodeError:
                             start_idx = -1
         return {}
@@ -150,9 +168,9 @@ class LinkedInPlatform(BaseSocialPlatform):
         if isinstance(aud, dict):
             safe_aud: dict[str, Any] = {}
             for k_list in ("seniority", "sectores"):
-                l = aud.get(k_list) or []
-                if isinstance(l, list):
-                    safe_aud[k_list] = [str(x).strip() for x in l if str(x).strip()][:15]
+                lst = aud.get(k_list) or []
+                if isinstance(lst, list):
+                    safe_aud[k_list] = [str(x).strip() for x in lst if str(x).strip()][:15]
             obj = str(aud.get("objetivo") or "engagement").strip()
             if obj in {"engagement", "branding_personal", "trafico", "leads", "branding"}:
                 safe_aud["objetivo"] = obj
@@ -160,13 +178,19 @@ class LinkedInPlatform(BaseSocialPlatform):
                 safe_aud["objetivo"] = "engagement"
         else:
             safe_aud = {"objetivo": "engagement"}
-        lessons = [str(x).strip() for x in (data.get("key_lessons") or data.get("lessons") or data.get("takeaways") or []) if str(x).strip()]
+        lessons = [
+            str(x).strip()
+            for x in (data.get("key_lessons") or data.get("lessons") or data.get("takeaways") or [])
+            if str(x).strip()
+        ]
         cta = str(data.get("closing_cta") or data.get("cta") or self.config.cta).strip()
         hashtags = list(data.get("hashtags") or data.get("tags") or [])
         return LinkedInContent(
             headline=str(data.get("headline") or data.get("title") or "").strip(),
             opening=str(data.get("opening") or "").strip(),
-            core_story=str(data.get("core_story") or data.get("body") or data.get("post") or "").strip(),
+            core_story=str(
+                data.get("core_story") or data.get("body") or data.get("post") or ""
+            ).strip(),
             key_lessons=lessons,
             closing_cta=cta,
             hashtags=hashtags,
@@ -196,7 +220,9 @@ class LinkedInPlatform(BaseSocialPlatform):
 
         opening, _ = content.enforce_char_limit(content.opening or "", 1500, "opening")
         content.opening = opening
-        story, w = content.enforce_char_limit(content.core_story or "", self.BODY_CHAR_LIMIT, "core_story")
+        story, w = content.enforce_char_limit(
+            content.core_story or "", self.BODY_CHAR_LIMIT, "core_story"
+        )
         content.core_story = story
         warnings.extend(w)
 
@@ -209,7 +235,9 @@ class LinkedInPlatform(BaseSocialPlatform):
         content.closing_cta = closing
         content.cta = closing
         warnings.extend(w)
-        if not any(x in content.closing_cta.lower() for x in ("coment", "opin", "crees", "tu", "ti", "👇")):
+        if not any(
+            x in content.closing_cta.lower() for x in ("coment", "opin", "crees", "tu", "ti", "👇")
+        ):
             if len(content.closing_cta) + 150 < 600:
                 content.closing_cta = (
                     (content.closing_cta + "\n\n" if content.closing_cta else "")
@@ -218,7 +246,9 @@ class LinkedInPlatform(BaseSocialPlatform):
                 warnings.append("CTA LinkedIn no contenía pregunta abierta; añadida.")
             content.cta = content.closing_cta
 
-        cleaned, w = content.clean_hashtags(content.tags or content.hashtags or [], self.effective_max_hashtags)
+        cleaned, w = content.clean_hashtags(
+            content.tags or content.hashtags or [], self.effective_max_hashtags
+        )
         content.tags = cleaned
         content.hashtags = cleaned
         warnings.extend(w)
@@ -228,9 +258,13 @@ class LinkedInPlatform(BaseSocialPlatform):
             warnings.append("Key lessons vacías: deducidas desde core_story.")
             sents = re.split(r"[.!?]\s+|\n+", content.core_story or "")
             lessons = [s.strip() for s in sents if 40 < len(s.strip()) < 250][:5]
-            content.key_lessons = lessons or ["Lección clave 1", "Lección clave 2", "Lección clave 3"]
-        for i, l in enumerate(content.key_lessons):
-            content.key_lessons[i], _ = content.enforce_char_limit(l, 300, f"key_lesson[{i}]")
+            content.key_lessons = lessons or [
+                "Lección clave 1",
+                "Lección clave 2",
+                "Lección clave 3",
+            ]
+        for i, lesson in enumerate(content.key_lessons):
+            content.key_lessons[i], _ = content.enforce_char_limit(lesson, 300, f"key_lesson[{i}]")
         if len(content.key_lessons) > 10:
             content.key_lessons = content.key_lessons[:10]
             warnings.append("Key lessons >10; truncadas.")
@@ -241,7 +275,9 @@ class LinkedInPlatform(BaseSocialPlatform):
         # Rebuild body
         body_parts = [content.opening, content.core_story]
         if content.key_lessons:
-            body_parts.append("Lecciones clave:\n" + "\n".join(f"  - {l}" for l in content.key_lessons))
+            body_parts.append(
+                "Lecciones clave:\n" + "\n".join(f"  - {lesson}" for lesson in content.key_lessons)
+            )
         if content.closing_cta:
             body_parts.append(content.closing_cta)
         content.body = "\n\n".join(p for p in body_parts if p)

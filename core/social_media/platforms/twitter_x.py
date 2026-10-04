@@ -1,4 +1,5 @@
 """Plataforma X (anteriormente Twitter) — hilo de tweets cortos y virales."""
+
 from __future__ import annotations
 
 import json
@@ -19,16 +20,28 @@ class XTwitterContent(PlatformContent):
     poll: dict[str, Any] | None = None
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(platform="twitter_x", **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__})
-        self.main_tweet = str(kwargs.get("main_tweet") or kwargs.get("title") or kwargs.get("tweet") or "").strip()
-        self.thread = [str(x).strip() for x in (kwargs.get("thread") or kwargs.get("tweets") or []) if str(x).strip()]
+        super().__init__(
+            platform="twitter_x",
+            **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__},
+        )
+        self.main_tweet = str(
+            kwargs.get("main_tweet") or kwargs.get("title") or kwargs.get("tweet") or ""
+        ).strip()
+        self.thread = [
+            str(x).strip()
+            for x in (kwargs.get("thread") or kwargs.get("tweets") or [])
+            if str(x).strip()
+        ]
         self.hashtags_per_tweet = [list(x or []) for x in (kwargs.get("hashtags_per_tweet") or [])]
-        self.media_hint_per_tweet = [str(x).strip() for x in (kwargs.get("media_hint_per_tweet") or kwargs.get("media") or [])]
+        self.media_hint_per_tweet = [
+            str(x).strip()
+            for x in (kwargs.get("media_hint_per_tweet") or kwargs.get("media") or [])
+        ]
         self.engagement_cta = str(kwargs.get("engagement_cta") or kwargs.get("cta") or "").strip()
         poll_raw = kwargs.get("poll")
         self.poll = dict(poll_raw) if isinstance(poll_raw, dict) else None
         self.title = self.main_tweet
-        self.body = "\n\n---\n\n".join([self.main_tweet] + self.thread)
+        self.body = "\n\n---\n\n".join([self.main_tweet, *self.thread])
 
     def to_dict(self) -> dict[str, Any]:
         d = super().to_dict()
@@ -127,19 +140,25 @@ class XTwitterPlatform(BaseSocialPlatform):
                     depth -= 1
                     if depth == 0 and start_idx != -1:
                         try:
-                            return json.loads(text[start_idx: idx + 1])
+                            return json.loads(text[start_idx : idx + 1])
                         except json.JSONDecodeError:
                             start_idx = -1
         return {}
 
     def parse_response(self, raw_text: str) -> XTwitterContent:
         data = self._extract_json(raw_text)
-        thread_raw = [str(x).strip() for x in (data.get("thread") or data.get("tweets") or []) if str(x).strip()]
+        thread_raw = [
+            str(x).strip()
+            for x in (data.get("thread") or data.get("tweets") or [])
+            if str(x).strip()
+        ]
         hashtags_per = list(data.get("hashtags_per_tweet") or [])
         while len(hashtags_per) < len(thread_raw) + 1:
             hashtags_per.append([])
         hashtags_per = hashtags_per[: len(thread_raw) + 1]
-        media_hints = [str(x).strip() for x in (data.get("media_hint_per_tweet") or data.get("media") or [])]
+        media_hints = [
+            str(x).strip() for x in (data.get("media_hint_per_tweet") or data.get("media") or [])
+        ]
         while len(media_hints) < len(thread_raw) + 1:
             media_hints.append("")
         media_hints = media_hints[: len(thread_raw) + 1]
@@ -151,7 +170,9 @@ class XTwitterPlatform(BaseSocialPlatform):
                 poll = {
                     "pregunta": str(poll.get("pregunta") or poll.get("question") or "").strip(),
                     "opciones": opts[:4],
-                    "duracion_horas": int(poll.get("duracion_horas") or poll.get("duration_hours") or 24),
+                    "duracion_horas": int(
+                        poll.get("duracion_horas") or poll.get("duration_hours") or 24
+                    ),
                 }
             else:
                 poll = None
@@ -159,7 +180,9 @@ class XTwitterPlatform(BaseSocialPlatform):
             poll = None
         global_hashtags = list(data.get("hashtags") or [])
         content = XTwitterContent(
-            main_tweet=str(data.get("main_tweet") or data.get("tweet") or data.get("title") or "").strip(),
+            main_tweet=str(
+                data.get("main_tweet") or data.get("tweet") or data.get("title") or ""
+            ).strip(),
             thread=thread_raw,
             hashtags=global_hashtags,
             hashtags_per_tweet=hashtags_per,
@@ -181,7 +204,9 @@ class XTwitterPlatform(BaseSocialPlatform):
         warnings = list(content.warnings)
 
         # 1) Main tweet: 280 chars HARD
-        main, w = content.enforce_char_limit(content.main_tweet or "", self.TWEET_CHAR_LIMIT, "main_tweet")
+        main, w = content.enforce_char_limit(
+            content.main_tweet or "", self.TWEET_CHAR_LIMIT, "main_tweet"
+        )
         content.main_tweet = main
         content.title = main
         warnings.extend(w)
@@ -210,7 +235,10 @@ class XTwitterPlatform(BaseSocialPlatform):
 
         # Último tweet debe tener CTA si no lo tiene
         last = content.thread[-1]
-        if not any(x in last.lower() for x in ("guarda", "sigue", "rt", "retuit", "comenta", "👇", "✅", "compártelo")):
+        if not any(
+            x in last.lower()
+            for x in ("guarda", "sigue", "rt", "retuit", "comenta", "👇", "✅", "compártelo")
+        ):
             cta_tail = " | Guarda este hilo ✅ y sígueme para más."
             merged = last + cta_tail
             if len(merged) <= self.TWEET_CHAR_LIMIT:
@@ -230,7 +258,7 @@ class XTwitterPlatform(BaseSocialPlatform):
         raw_per = list(content.hashtags_per_tweet)
         while len(raw_per) < target:
             raw_per.append([])
-        for i, tags in enumerate(raw_per[:target]):
+        for tags in raw_per[:target]:
             safe, _ = content.clean_hashtags(list(tags or []), 2)
             safe_per.append(safe)
         content.hashtags_per_tweet = safe_per
@@ -244,13 +272,17 @@ class XTwitterPlatform(BaseSocialPlatform):
         content.media_hint_per_tweet = safe_media[:target]
 
         # 6) Engagement CTA
-        content.engagement_cta, _ = content.enforce_char_limit(content.engagement_cta, 200, "engagement_cta")
+        content.engagement_cta, _ = content.enforce_char_limit(
+            content.engagement_cta, 200, "engagement_cta"
+        )
         content.cta, _ = content.enforce_char_limit(content.cta, 200, "cta")
 
         # 7) Poll válido
         if content.poll:
             p = content.poll
-            p["pregunta"], _ = content.enforce_char_limit(str(p.get("pregunta", "")), 120, "poll.pregunta")
+            p["pregunta"], _ = content.enforce_char_limit(
+                str(p.get("pregunta", "")), 120, "poll.pregunta"
+            )
             opts = [str(x).strip() for x in p.get("opciones", []) if str(x).strip()]
             opts = opts[:4]
             if len(opts) < 2:
@@ -265,6 +297,6 @@ class XTwitterPlatform(BaseSocialPlatform):
                 except (TypeError, ValueError):
                     p["duracion_horas"] = 24
 
-        content.body = "\n\n---\n\n".join([content.main_tweet] + content.thread)
+        content.body = "\n\n---\n\n".join([content.main_tweet, *content.thread])
         content.warnings = warnings
         return content

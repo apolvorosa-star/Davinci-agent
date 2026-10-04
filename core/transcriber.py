@@ -1,8 +1,6 @@
-import os
 import re
 import shutil
 from pathlib import Path
-from typing import Union
 
 try:
     import whisper
@@ -14,8 +12,24 @@ except ImportError as exc:  # pragma: no cover
 
 # Extensiones soportadas por Whisper (incluye formatos que requieren ffmpeg)
 WHISPER_SUPPORTED_EXTS = {
-    ".mp3", ".wav", ".m4a", ".flac", ".ogg", ".oga", ".opus", ".wma", ".aac",
-    ".mp4", ".mkv", ".mov", ".avi", ".webm", ".mpeg", ".mpg", ".3gp", ".m4v",
+    ".mp3",
+    ".wav",
+    ".m4a",
+    ".flac",
+    ".ogg",
+    ".oga",
+    ".opus",
+    ".wma",
+    ".aac",
+    ".mp4",
+    ".mkv",
+    ".mov",
+    ".avi",
+    ".webm",
+    ".mpeg",
+    ".mpg",
+    ".3gp",
+    ".m4v",
 }
 
 
@@ -34,7 +48,7 @@ class Transcriber:
 
     def transcribe(
         self,
-        audio_path: Union[str, Path],
+        audio_path: str | Path,
         language: str = "es",
         prompt: str | None = None,
     ) -> dict:
@@ -67,9 +81,7 @@ class Transcriber:
         try:
             file_size = audio_path.stat().st_size
         except OSError as exc:
-            raise RuntimeError(
-                f"No se pudo leer el archivo {audio_path.name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"No se pudo leer el archivo {audio_path.name}: {exc}") from exc
         if file_size == 0:
             raise ValueError(f"El archivo está vacío: {audio_path}")
 
@@ -81,7 +93,7 @@ class Transcriber:
             )
 
         # Contexto para karaoke/canciones: idioma y, si se proporciona, título/artista
-        initial_prompt = prompt or f"Transcripción en español."
+        initial_prompt = prompt or "Transcripción en español."
 
         try:
             result = self.model.transcribe(
@@ -94,8 +106,7 @@ class Transcriber:
             )
         except Exception as exc:
             raise RuntimeError(
-                f"Error en la transcripción de {audio_path.name}: "
-                f"{type(exc).__name__}: {exc}."
+                f"Error en la transcripción de {audio_path.name}: " f"{type(exc).__name__}: {exc}."
             ) from exc
 
         raw_text = result.get("text", "").strip()
@@ -103,9 +114,7 @@ class Transcriber:
         if not raw_text and not segments:
             # Caso: audio silencioso o sin voz detectable. No es un fallo grave,
             # pero lo indicamos explícitamente para que la IA no genere metadatos vacíos.
-            raw_text = (
-                "[No se detectó voz o contenido transcribible en el audio.]"
-            )
+            raw_text = "[No se detectó voz o contenido transcribible en el audio.]"
 
         return {
             "text": raw_text,

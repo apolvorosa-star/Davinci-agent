@@ -1,5 +1,3 @@
-import json
-import logging
 import queue
 import threading
 import traceback
@@ -10,6 +8,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 try:
     from dotenv import load_dotenv
+
     _env_file = Path(__file__).resolve().parent / ".env"
     if _env_file.exists():
         load_dotenv(_env_file, override=False)
@@ -17,16 +16,13 @@ except ImportError:  # pragma: no cover
     pass
 
 from core.ai_engine import AIEngine
-from core.social_media import build_social_report
-from core.transcriber import Transcriber
 from core.media_io import (
     ensure_readable_for_whisper,
-    ffmpeg_available,
     is_media_extension,
-    media_extensions,
 )
+from core.social_media import build_social_report
+from core.transcriber import Transcriber
 from main import (
-    MEDIA_EXTENSIONS,
     _safe_write_json,
     _safe_write_text,
     _setup_logger,
@@ -67,28 +63,20 @@ class ProcessingWorker(threading.Thread):
 
     def run(self):
         project_root = Path(__file__).resolve().parent
-        output_folder = project_root / self.settings.get("paths", {}).get(
-            "output", "output"
-        )
+        output_folder = project_root / self.settings.get("paths", {}).get("output", "output")
         logger = _setup_logger(output_folder)
         job_folder: Path | None = None
         try:
             if not is_media_extension(self.media_path):
-                raise ValueError(
-                    f"Formato de archivo no soportado: {self.media_path.suffix}"
-                )
+                raise ValueError(f"Formato de archivo no soportado: {self.media_path.suffix}")
 
             output_folder.mkdir(parents=True, exist_ok=True)
 
             models_cfg = self.settings.get("models", {})
             whisper_cfg = models_cfg.get("whisper", {})
             transcription_cfg = self.settings.get("transcription", {})
-            language = transcription_cfg.get("language") or whisper_cfg.get(
-                "language", "es"
-            )
-            model_size = transcription_cfg.get("model_size") or whisper_cfg.get(
-                "name", "base"
-            )
+            language = transcription_cfg.get("language") or whisper_cfg.get("language", "es")
+            model_size = transcription_cfg.get("model_size") or whisper_cfg.get("name", "base")
 
             self._send("status", "Comprobando códec multimedia (media_io / FFmpeg)...")
             temp_folder = get_project_root() / self.settings.get("paths", {}).get("temp", ".tmp")
@@ -97,7 +85,10 @@ class ProcessingWorker(threading.Thread):
                 self._send("warning", f"[media_io] {w}")
             media_to_transcribe = preflight.ready_path
             if preflight.used_transcode:
-                self._send("status", f"Pre-convertido a WAV por códec no estándar ({self.media_path.suffix})")
+                self._send(
+                    "status",
+                    f"Pre-convertido a WAV por códec no estándar ({self.media_path.suffix})",
+                )
 
             self._send("status", "Cargando modelo de transcripción...")
             self._send("progress", 0.1)
@@ -125,7 +116,10 @@ class ProcessingWorker(threading.Thread):
             social_bundle = None
             if self.generate_all_social:
                 try:
-                    self._send("status", "Generando contenido para redes sociales (YouTube/IG/TikTok/X/FB/LI)...")
+                    self._send(
+                        "status",
+                        "Generando contenido para redes sociales (YouTube/IG/TikTok/X/FB/LI)...",
+                    )
                     self._send("progress", 0.65)
                     social_bundle = ai.generate_social_media_bundle(
                         transcript_for_ai,
@@ -137,7 +131,7 @@ class ProcessingWorker(threading.Thread):
                         social_bundle.enabled_platforms(),
                         list(social_bundle.errors.keys()),
                     )
-                except Exception as social_exc:  # noqa: BLE001
+                except Exception as social_exc:
                     logger.warning(
                         "Worker: falló la generación social; continúa con YouTube legacy. %s",
                         social_exc,
@@ -198,11 +192,14 @@ class ProcessingWorker(threading.Thread):
 
             self._send("status", "¡Completado!")
             self._send("progress", 1.0)
-            self._send("done", {
-                "job_folder": str(job_folder),
-                "redes_sociales": social_bundle.enabled_platforms() if social_bundle else [],
-                "errores_redes": social_bundle.errors if social_bundle else {},
-            })
+            self._send(
+                "done",
+                {
+                    "job_folder": str(job_folder),
+                    "redes_sociales": social_bundle.enabled_platforms() if social_bundle else [],
+                    "errores_redes": social_bundle.errors if social_bundle else {},
+                },
+            )
         except Exception as exc:
             tb = traceback.format_exc()
             short_error = f"{type(exc).__name__}: {exc}"
@@ -223,8 +220,7 @@ class ProcessingWorker(threading.Thread):
                 "error",
                 {
                     "message": (
-                        f"{short_error}\n\n"
-                        f"Revisa el log: {output_folder / 'error.log'}"
+                        f"{short_error}\n\n" f"Revisa el log: {output_folder / 'error.log'}"
                     ),
                     "traceback": tb,
                 },

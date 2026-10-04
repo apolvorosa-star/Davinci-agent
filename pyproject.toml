@@ -1,0 +1,43 @@
+[project]
+name = "davinci-agent"
+version = "1.0.0"
+description = "Suite de transcripcion + generacion de contenido multi-plataforma para redes sociales"
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["src/", "my_app/"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "W", "I", "UP", "B", "BLE", "S", "RUF", "ISC", "PIE", "DTZ"]
+ignore = [
+    # Patrones deliberados del codebase: los providers capturan Exception a
+    # proposito (fallback chain, health checks que nunca deben lanzar).
+    "BLE001",   # blind-except
+    "S110",     # try-except-pass
+    "S112",     # try-except-continue
+    "ISC004",   # implicit string concat en colecciones (legible aqui)
+    "RUF022",   # __all__ agrupado por secciones en vez de ordenado
+    "DTZ005",   # datetime.now() sin tz (timestamps de UI/log)
+    "S603",     # subprocess sin shell=True (deliberado, mas seguro)
+    "S607",     # ruta parcial al lanzar procesos (se resuelve en PATH a proposito)
+    "S606",     # os.startfile / xdg-open para abrir carpetas de salida
+    "UP022",    # PIPE separados para leer stdout/stderr por streaming
+    "RUF001",   # tipografia intencional en strings de UI (ℹ, –, →)
+    "RUF002",   # tipografia intencional en docstrings
+    "ISC001",   # conflicto conocido con black (concatenacion implicita)
+    "ISC002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]   # assert es lo normal en pytest
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "src/|my_app/"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"

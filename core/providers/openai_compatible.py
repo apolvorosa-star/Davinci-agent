@@ -13,9 +13,10 @@ Sirve *out-of-the-box* para:
 Todos exponen ``POST /chat/completions`` con el mismo formato estándar, y
 muchos soportan ``response_format: {"type": "json_object"}`` para ``json_mode``.
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import requests
 
@@ -26,7 +27,6 @@ from .base import (
     RateLimitError,
     parse_retry_after,
 )
-
 
 _DEFAULT_BASE_URL = "https://api.openai.com/v1"
 
@@ -42,7 +42,7 @@ class OpenAICompatibleProvider(BaseProvider):
     def __init__(
         self,
         config: ProviderConfig,
-        provider_id_override: Optional[str] = None,
+        provider_id_override: str | None = None,
         default_base_url: str = _DEFAULT_BASE_URL,
     ) -> None:
         super().__init__(config)
@@ -58,15 +58,12 @@ class OpenAICompatibleProvider(BaseProvider):
     def validate(self) -> None:
         if not self.model:
             raise ValueError(
-                f"[{self.PROVIDER_ID}:{self.name}] Falta 'model' "
-                "(ej: gpt-4o-mini, llama-3.1…)."
+                f"[{self.PROVIDER_ID}:{self.name}] Falta 'model' " "(ej: gpt-4o-mini, llama-3.1…)."
             )
         if not self.api_key:
             # Para servidores locales sin auth (LM Studio / LocalAI) permitimos
             # vacío siempre que la URL sea localhost / 127.0.0.1.
-            is_local = (
-                "localhost" in self.base_url or "127.0.0.1" in self.base_url
-            )
+            is_local = "localhost" in self.base_url or "127.0.0.1" in self.base_url
             if not is_local:
                 raise ValueError(
                     f"[{self.PROVIDER_ID}:{self.name}] Falta 'api_key'. "
@@ -86,7 +83,7 @@ class OpenAICompatibleProvider(BaseProvider):
                 timeout=min(5.0, float(self.config.timeout)),
             )
             return 200 <= resp.status_code < 400
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     # ------------------------------------------------------------------
@@ -139,11 +136,10 @@ class OpenAICompatibleProvider(BaseProvider):
                             detail = f" - {err.get('message', '')}"
                         elif isinstance(err, str):
                             detail = f" - {err}"
-                except Exception:  # noqa: BLE001
+                except Exception:
                     detail = ""
                 message = (
-                    f"[{self.PROVIDER_ID}:{self.name}] HTTP {resp.status_code} "
-                    f"en {url}{detail}"
+                    f"[{self.PROVIDER_ID}:{self.name}] HTTP {resp.status_code} " f"en {url}{detail}"
                 )
                 if resp.status_code == 429:
                     raise RateLimitError(
@@ -192,9 +188,7 @@ class OpenAICompatibleProvider(BaseProvider):
         choices = data.get("choices")
         if not isinstance(choices, list) or not choices:
             err = data.get("error")
-            raise ValueError(
-                f"[openai_compat] Respuesta sin 'choices': {err or data}"
-            )
+            raise ValueError(f"[openai_compat] Respuesta sin 'choices': {err or data}")
         first = choices[0]
         if isinstance(first, dict):
             msg = first.get("message")
@@ -205,24 +199,20 @@ class OpenAICompatibleProvider(BaseProvider):
                 if isinstance(content, list):
                     parts: list[str] = []
                     for block in content:
-                        if (
-                            isinstance(block, dict)
-                            and block.get("type") == "text"
-                        ):
+                        if isinstance(block, dict) and block.get("type") == "text":
                             t = block.get("text")
                             if isinstance(t, str):
                                 parts.append(t)
                     return "".join(parts)
             if isinstance(first.get("text"), str):
                 return str(first["text"])
-        raise ValueError(
-            f"[openai_compat] Formato de respuesta desconocido: {first!r}"
-        )
+        raise ValueError(f"[openai_compat] Formato de respuesta desconocido: {first!r}")
 
 
 # =====================================================================
 # Especializaciones concretas (cambian PROVIDER_ID + default base_url)
 # =====================================================================
+
 
 class OpenAIProvider(OpenAICompatibleProvider):
     """Proveedor oficial de OpenAI (``api.openai.com``)."""

@@ -4,13 +4,15 @@ Cada plataforma concreta (YouTube, Instagram, TikTok…) hereda de
 :class:`BaseSocialPlatform` e implementa sus métodos abstractos. Esto permite
 tratarlas de forma polimórfica desde :class:`SocialMediaManager`.
 """
+
 from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, field
+from datetime import UTC, datetime
+from typing import Any
 
 
 class SocialMediaPlatformError(RuntimeError):
@@ -41,7 +43,7 @@ class PlatformConfig:
     extra_rules: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any] | None) -> "PlatformConfig":
+    def from_dict(cls, raw: dict[str, Any] | None) -> PlatformConfig:
         raw = raw or {}
         return cls(
             enabled=bool(raw.get("enabled", True)),
@@ -80,9 +82,7 @@ class PlatformContent:
     hashtags: list[str] = field(default_factory=list)
     cta: str = ""
     warnings: list[str] = field(default_factory=list)
-    generated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    generated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     raw_ai_response: str = ""
 
     # ------------------------------------------------------------------
@@ -114,9 +114,7 @@ class PlatformContent:
                 continue
             seen.add(key)
             if len(cleaned) >= max_tags:
-                warnings.append(
-                    f"Hashtags excedieron el límite de {max_tags}; se truncaron."
-                )
+                warnings.append(f"Hashtags excedieron el límite de {max_tags}; se truncaron.")
                 break
             cleaned.append(t)
         return cleaned, warnings
@@ -136,9 +134,7 @@ class PlatformContent:
             return text, []
         safe = max(0, limit - len(ellipsis))
         truncated = text[:safe].rstrip() + ellipsis
-        return truncated, [
-            f"Campo '{field_name}' excedió {limit} caracteres; se truncó."
-        ]
+        return truncated, [f"Campo '{field_name}' excedió {limit} caracteres; se truncó."]
 
     @staticmethod
     def extract_hashtags_from_text(text: str) -> list[str]:
@@ -173,7 +169,7 @@ class BaseSocialPlatform(ABC):
     def __init__(
         self,
         config: PlatformConfig | None = None,
-        ai_callable: Optional[Callable[[str, Optional[str]], str]] = None,
+        ai_callable: Callable[[str, str | None], str] | None = None,
     ) -> None:
         self.config = config or PlatformConfig()
         self._ai_callable = ai_callable

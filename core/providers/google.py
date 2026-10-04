@@ -4,6 +4,7 @@ Implementación directa vía ``requests`` al endpoint
 ``POST /v1beta/models/{model}:generateContent``. No requiere el SDK oficial
 de Google (menor footprint para distribución / PyInstaller).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,7 +18,6 @@ from .base import (
     RateLimitError,
     parse_retry_after,
 )
-
 
 _DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com"
 
@@ -38,9 +38,7 @@ class GoogleGeminiProvider(BaseProvider):
     # ------------------------------------------------------------------
     def validate(self) -> None:
         if not self.model:
-            raise ValueError(
-                "[google] Falta 'model' (ej: gemini-1.5-flash-latest)."
-            )
+            raise ValueError("[google] Falta 'model' (ej: gemini-1.5-flash-latest).")
         if not self.api_key:
             raise ValueError(
                 "[google] Falta 'api_key'. Define la variable GOOGLE_API_KEY "
@@ -63,7 +61,7 @@ class GoogleGeminiProvider(BaseProvider):
             # pero hubo respuesta HTTP; lo consideramos "vivo" (no es un
             # error de conexión).
             return resp.status_code in {200, 400, 401, 403}
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     # ------------------------------------------------------------------
@@ -86,9 +84,7 @@ class GoogleGeminiProvider(BaseProvider):
         """
 
         def _call_once() -> str:
-            endpoint = (
-                f"{self.base_url}/v1beta/models/{self.model}:generateContent"
-            )
+            endpoint = f"{self.base_url}/v1beta/models/{self.model}:generateContent"
             sys_msg = self._effective_system(system_prompt)
 
             contents: list[dict[str, Any]] = [
@@ -105,18 +101,12 @@ class GoogleGeminiProvider(BaseProvider):
                 },
             }
             if self.config.max_tokens:
-                payload["generationConfig"]["maxOutputTokens"] = int(
-                    self.config.max_tokens
-                )
+                payload["generationConfig"]["maxOutputTokens"] = int(self.config.max_tokens)
             if sys_msg:
-                payload["system_instruction"] = {
-                    "parts": [{"text": sys_msg}]
-                }
+                payload["system_instruction"] = {"parts": [{"text": sys_msg}]}
             if json_mode:
                 # Best-effort: no todas las versiones / modelos lo soportan.
-                payload["generationConfig"]["response_mime_type"] = (
-                    "application/json"
-                )
+                payload["generationConfig"]["response_mime_type"] = "application/json"
             for k, v in (self.config.extras.get("payload") or {}).items():
                 payload[k] = v
 
@@ -136,11 +126,10 @@ class GoogleGeminiProvider(BaseProvider):
                     status = (err_payload.get("error") or {}).get("status", "")
                     msg = (err_payload.get("error") or {}).get("message", "")
                     detail = f" - [{status}] {msg}"
-                except Exception:  # noqa: BLE001
+                except Exception:
                     detail = ""
                 message = (
-                    f"[google:{self.name}] HTTP {resp.status_code} "
-                    f"en Gemini {endpoint}{detail}"
+                    f"[google:{self.name}] HTTP {resp.status_code} " f"en Gemini {endpoint}{detail}"
                 )
                 if resp.status_code == 429:
                     raise RateLimitError(
@@ -156,8 +145,7 @@ class GoogleGeminiProvider(BaseProvider):
                 if isinstance(data, dict):
                     err = str((data.get("error") or {}).get("message", ""))
                 raise ValueError(
-                    f"[google:{self.name}] Respuesta sin 'candidates'. "
-                    f"{err or data}"
+                    f"[google:{self.name}] Respuesta sin 'candidates'. " f"{err or data}"
                 )
             first_content = (candidates[0].get("content") or {}).get("parts") or []
             parts: list[str] = []

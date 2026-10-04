@@ -22,16 +22,14 @@ Ejemplo::
     })
     # -> {"provider": {"url": "http://localhost:11434", "token": "sk-secret"}}
 """
+
 from __future__ import annotations
 
 import os
 import re
 from typing import Any
 
-
-_ENV_PATTERN = re.compile(
-    r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}"
-)
+_ENV_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 
 
 def expand_env_vars(value: Any) -> Any:
@@ -52,6 +50,7 @@ def expand_env_vars(value: Any) -> Any:
             producción/distribución.
     """
     if isinstance(value, str):
+
         def _replace(match: re.Match[str]) -> str:
             name = match.group(1)
             default = match.group(2)

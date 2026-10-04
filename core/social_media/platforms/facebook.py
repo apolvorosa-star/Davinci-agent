@@ -1,4 +1,5 @@
 """Plataforma Facebook — publicación para página/grupo, descripción larga y segmentación."""
+
 from __future__ import annotations
 
 import json
@@ -20,12 +21,21 @@ class FacebookContent(PlatformContent):
     first_comment: str = ""
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(platform="facebook", **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__})
-        self.caption = str(kwargs.get("caption") or kwargs.get("body") or kwargs.get("post") or "").strip()
+        super().__init__(
+            platform="facebook",
+            **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__},
+        )
+        self.caption = str(
+            kwargs.get("caption") or kwargs.get("body") or kwargs.get("post") or ""
+        ).strip()
         self.headline = str(kwargs.get("headline") or kwargs.get("title") or "").strip()
         self.link_title = str(kwargs.get("link_title") or "").strip()
         self.link_description = str(kwargs.get("link_description") or "").strip()
-        self.summary_points = [str(x).strip() for x in (kwargs.get("summary_points") or kwargs.get("key_points") or []) if str(x).strip()]
+        self.summary_points = [
+            str(x).strip()
+            for x in (kwargs.get("summary_points") or kwargs.get("key_points") or [])
+            if str(x).strip()
+        ]
         aud = kwargs.get("audience_hints") or kwargs.get("audience") or {}
         self.audience_hints = dict(aud) if isinstance(aud, dict) else {}
         self.first_comment = str(kwargs.get("first_comment") or "").strip()
@@ -134,7 +144,7 @@ class FacebookPlatform(BaseSocialPlatform):
                     depth -= 1
                     if depth == 0 and start_idx != -1:
                         try:
-                            return json.loads(text[start_idx: idx + 1])
+                            return json.loads(text[start_idx : idx + 1])
                         except json.JSONDecodeError:
                             start_idx = -1
         return {}
@@ -152,9 +162,9 @@ class FacebookPlatform(BaseSocialPlatform):
                 except (TypeError, ValueError):
                     pass
             for k_list in ("paises", "intereses"):
-                l = aud.get(k_list) or []
-                if isinstance(l, list):
-                    safe_aud[k_list] = [str(x).strip() for x in l if str(x).strip()][:20]
+                lst = aud.get(k_list) or []
+                if isinstance(lst, list):
+                    safe_aud[k_list] = [str(x).strip() for x in lst if str(x).strip()][:20]
             obj = str(aud.get("objetivo") or "engagement").strip()
             if obj in {"engagement", "trafico", "conversiones", "awareness", "traffic", "leads"}:
                 safe_aud["objetivo"] = obj
@@ -169,7 +179,11 @@ class FacebookPlatform(BaseSocialPlatform):
             hashtags=list(data.get("hashtags") or []),
             link_title=str(data.get("link_title") or "").strip(),
             link_description=str(data.get("link_description") or "").strip(),
-            summary_points=[str(x).strip() for x in (data.get("summary_points") or data.get("key_points") or []) if str(x).strip()],
+            summary_points=[
+                str(x).strip()
+                for x in (data.get("summary_points") or data.get("key_points") or [])
+                if str(x).strip()
+            ],
             first_comment=str(data.get("first_comment") or "").strip(),
             audience_hints=safe_aud,
         )
@@ -193,12 +207,16 @@ class FacebookPlatform(BaseSocialPlatform):
             content.title = content.headline
             warnings.append("Headline vacío: generado genérico.")
 
-        caption, w = content.enforce_char_limit(content.caption or "", self.BODY_CHAR_LIMIT, "caption")
+        caption, w = content.enforce_char_limit(
+            content.caption or "", self.BODY_CHAR_LIMIT, "caption"
+        )
         content.caption = caption
         content.body = caption
         warnings.extend(w)
         if len(content.caption) < 200:
-            warnings.append(f"Caption Facebook muy corto ({len(content.caption)} chars). Facebook prefiere 800-1800 chars para alcance.")
+            warnings.append(
+                f"Caption Facebook muy corto ({len(content.caption)} chars). Facebook prefiere 800-1800 chars para alcance."
+            )
 
         cta, w = content.enforce_char_limit(content.cta or "", 300, "cta")
         content.cta = cta
@@ -209,8 +227,12 @@ class FacebookPlatform(BaseSocialPlatform):
         warnings.extend(w)
 
         content.link_title, _ = content.enforce_char_limit(content.link_title, 100, "link_title")
-        content.link_description, _ = content.enforce_char_limit(content.link_description, 200, "link_description")
-        content.first_comment, _ = content.enforce_char_limit(content.first_comment, 1000, "first_comment")
+        content.link_description, _ = content.enforce_char_limit(
+            content.link_description, 200, "link_description"
+        )
+        content.first_comment, _ = content.enforce_char_limit(
+            content.first_comment, 1000, "first_comment"
+        )
 
         # Summary points: 3-6
         if not content.summary_points:

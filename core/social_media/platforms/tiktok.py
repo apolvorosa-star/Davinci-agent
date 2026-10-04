@@ -1,4 +1,5 @@
 """Plataforma TikTok — hooks virales, captions cortos, hashtags y tendencias."""
+
 from __future__ import annotations
 
 import json
@@ -19,12 +20,21 @@ class TikTokContent(PlatformContent):
     scene_cuts: list[dict[str, Any]] = field(default_factory=list)
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(platform="tiktok", **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__})
+        super().__init__(
+            platform="tiktok",
+            **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__},
+        )
         self.hook = str(kwargs.get("hook") or kwargs.get("title") or "").strip()
         self.caption = str(kwargs.get("caption") or kwargs.get("body") or "").strip()
-        self.trend_suggestion = str(kwargs.get("trend_suggestion") or kwargs.get("trend") or "").strip()
-        self.audio_suggestion = str(kwargs.get("audio_suggestion") or kwargs.get("audio") or "trending sound").strip()
-        self.text_overlays = [str(x).strip() for x in (kwargs.get("text_overlays") or []) if str(x).strip()]
+        self.trend_suggestion = str(
+            kwargs.get("trend_suggestion") or kwargs.get("trend") or ""
+        ).strip()
+        self.audio_suggestion = str(
+            kwargs.get("audio_suggestion") or kwargs.get("audio") or "trending sound"
+        ).strip()
+        self.text_overlays = [
+            str(x).strip() for x in (kwargs.get("text_overlays") or []) if str(x).strip()
+        ]
         self.scene_cuts = [dict(s) for s in (kwargs.get("scene_cuts") or []) if isinstance(s, dict)]
         self.title = self.hook
         self.body = self.caption
@@ -122,7 +132,7 @@ class TikTokPlatform(BaseSocialPlatform):
                     depth -= 1
                     if depth == 0 and start_idx != -1:
                         try:
-                            return json.loads(text[start_idx: idx + 1])
+                            return json.loads(text[start_idx : idx + 1])
                         except json.JSONDecodeError:
                             start_idx = -1
         return {}
@@ -144,7 +154,9 @@ class TikTokPlatform(BaseSocialPlatform):
             cta=str(data.get("cta") or self.config.cta).strip(),
             hashtags=list(data.get("hashtags") or []),
             trend_suggestion=str(data.get("trend_suggestion") or data.get("trend") or "").strip(),
-            audio_suggestion=str(data.get("audio_suggestion") or data.get("audio") or "trending sound").strip(),
+            audio_suggestion=str(
+                data.get("audio_suggestion") or data.get("audio") or "trending sound"
+            ).strip(),
             text_overlays=overlays,
             scene_cuts=cuts,
         )
@@ -183,12 +195,18 @@ class TikTokPlatform(BaseSocialPlatform):
         if len(content.hashtags) < 3:
             warnings.append(f"TikTok recomienda 5-8 hashtags; tienes {len(content.hashtags)}.")
 
-        content.trend_suggestion, _ = content.enforce_char_limit(content.trend_suggestion, 120, "trend_suggestion")
-        content.audio_suggestion, _ = content.enforce_char_limit(content.audio_suggestion, 120, "audio_suggestion")
+        content.trend_suggestion, _ = content.enforce_char_limit(
+            content.trend_suggestion, 120, "trend_suggestion"
+        )
+        content.audio_suggestion, _ = content.enforce_char_limit(
+            content.audio_suggestion, 120, "audio_suggestion"
+        )
 
         # Overlays: 3-7 máx, cada uno <40 chars
         if len(content.text_overlays) < 3:
-            warnings.append(f"Text overlays insuficientes ({len(content.text_overlays)}); completados.")
+            warnings.append(
+                f"Text overlays insuficientes ({len(content.text_overlays)}); completados."
+            )
             base = [content.hook, "...", content.cta]
             for t in base:
                 if t and t not in content.text_overlays and len(content.text_overlays) < 3:
@@ -196,22 +214,26 @@ class TikTokPlatform(BaseSocialPlatform):
         for i, o in enumerate(content.text_overlays):
             content.text_overlays[i], _ = content.enforce_char_limit(o, 40, f"overlay[{i}]")
         if len(content.text_overlays) > 10:
-            warnings.append(f"Overlays excedieron 10; se truncaron.")
+            warnings.append("Overlays excedieron 10; se truncaron.")
             content.text_overlays = content.text_overlays[:10]
 
         # Scene cuts: 3-6
         if len(content.scene_cuts) < 3:
             warnings.append("Scene cuts <3; se crearon cortes básicos.")
             for i in range(max(0, 3 - len(content.scene_cuts))):
-                content.scene_cuts.append({
-                    "segundo": f"{i*3}-{(i+1)*3}",
-                    "visual": f"Plano {i+1}: ritmo rápido siguiendo el audio viral.",
-                })
+                content.scene_cuts.append(
+                    {
+                        "segundo": f"{i*3}-{(i+1)*3}",
+                        "visual": f"Plano {i+1}: ritmo rápido siguiendo el audio viral.",
+                    }
+                )
         if len(content.scene_cuts) > 10:
             content.scene_cuts = content.scene_cuts[:10]
         for i, c in enumerate(content.scene_cuts):
             c["segundo"] = str(c.get("segundo", ""))[:20]
-            vis, _ = content.enforce_char_limit(str(c.get("visual", "")), 200, f"scene_cut[{i}].visual")
+            vis, _ = content.enforce_char_limit(
+                str(c.get("visual", "")), 200, f"scene_cut[{i}].visual"
+            )
             c["visual"] = vis
         content.warnings = warnings
         return content

@@ -1,4 +1,5 @@
 """Plataforma Instagram — feed post, stories (5-10), reels caption y hashtags."""
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,6 @@ from typing import Any
 from ..base import (
     BaseSocialPlatform,
     PlatformContent,
-    SocialMediaPlatformError,
 )
 
 
@@ -38,26 +38,37 @@ class InstagramContent(PlatformContent):
     reel: InstagramReel | None = None
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(platform="instagram", **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__})
+        super().__init__(
+            platform="instagram",
+            **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__},
+        )
         self.feed_caption = str(kwargs.get("feed_caption") or kwargs.get("body") or "").strip()
         self.carousel_items = list(kwargs.get("carousel_items") or [])
         parsed_stories: list[InstagramStory] = []
-        for s in (kwargs.get("stories") or []):
+        for s in kwargs.get("stories") or []:
             if isinstance(s, InstagramStory):
                 parsed_stories.append(s)
             elif isinstance(s, dict):
                 try:
                     dur_raw = s.get("duracion_segundos", 15)
-                    dur = int(dur_raw) if isinstance(dur_raw, (int, float, str)) and str(dur_raw).strip() else 15
+                    dur = (
+                        int(dur_raw)
+                        if isinstance(dur_raw, (int, float, str)) and str(dur_raw).strip()
+                        else 15
+                    )
                 except (TypeError, ValueError):
                     dur = 15
-                parsed_stories.append(InstagramStory(
-                    texto=str(s.get("texto") or s.get("text") or "").strip(),
-                    sticker_sugerido=str(s.get("sticker_sugerido") or s.get("sticker") or "encuesta").strip(),
-                    duracion_segundos=max(3, min(dur, 15)),
-                    imagen_prompt=str(s.get("imagen_prompt") or s.get("visual") or "").strip(),
-                    formato=str(s.get("formato") or "vertical 9:16").strip(),
-                ))
+                parsed_stories.append(
+                    InstagramStory(
+                        texto=str(s.get("texto") or s.get("text") or "").strip(),
+                        sticker_sugerido=str(
+                            s.get("sticker_sugerido") or s.get("sticker") or "encuesta"
+                        ).strip(),
+                        duracion_segundos=max(3, min(dur, 15)),
+                        imagen_prompt=str(s.get("imagen_prompt") or s.get("visual") or "").strip(),
+                        formato=str(s.get("formato") or "vertical 9:16").strip(),
+                    )
+                )
         self.stories = parsed_stories
         reel = kwargs.get("reel")
         if reel is None:
@@ -79,17 +90,25 @@ class InstagramContent(PlatformContent):
         d["feed_caption"] = self.feed_caption
         d["carousel_items"] = list(self.carousel_items)
         d["stories"] = [
-            {"texto": s.texto, "sticker_sugerido": s.sticker_sugerido,
-             "duracion_segundos": s.duracion_segundos,
-             "imagen_prompt": s.imagen_prompt, "formato": s.formato}
+            {
+                "texto": s.texto,
+                "sticker_sugerido": s.sticker_sugerido,
+                "duracion_segundos": s.duracion_segundos,
+                "imagen_prompt": s.imagen_prompt,
+                "formato": s.formato,
+            }
             for s in self.stories
         ]
-        d["reel"] = {
-            "caption": self.reel.caption,
-            "hook": self.reel.hook,
-            "hashtags": list(self.reel.hashtags),
-            "audio_sugerido": self.reel.audio_sugerido,
-        } if self.reel else None
+        d["reel"] = (
+            {
+                "caption": self.reel.caption,
+                "hook": self.reel.hook,
+                "hashtags": list(self.reel.hashtags),
+                "audio_sugerido": self.reel.audio_sugerido,
+            }
+            if self.reel
+            else None
+        )
         return d
 
 
@@ -139,7 +158,7 @@ class InstagramPlatform(BaseSocialPlatform):
             f"{ctx}"
             f"Idioma: {self.config.language} | Tono: {self.config.tone}\n\n"
             "TRANSCRIPCIÓN:\n"
-            f"{transcript}"
+            f"{transcript}",
         )
         system = (
             "Eres Instagram Growth Manager senior especializado en contenido viral "
@@ -183,17 +202,29 @@ class InstagramPlatform(BaseSocialPlatform):
                     depth -= 1
                     if depth == 0 and start_idx != -1:
                         try:
-                            return json.loads(text[start_idx: idx + 1])
+                            return json.loads(text[start_idx : idx + 1])
                         except json.JSONDecodeError:
                             start_idx = -1
         return {}
 
     def parse_response(self, raw_text: str) -> InstagramContent:
         data = self._extract_json(raw_text)
-        caption = str(data.get("feed_caption") or data.get("body") or data.get("caption") or "").strip()
+        caption = str(
+            data.get("feed_caption") or data.get("body") or data.get("caption") or ""
+        ).strip()
         stories_raw = data.get("stories") or []
         stories: list[InstagramStory] = []
-        valid_stickers = {"encuesta", "quiz", "link", "ubicacion", "hashtag", "mencion", "pegatina", "sliders", "pregunta"}
+        valid_stickers = {
+            "encuesta",
+            "quiz",
+            "link",
+            "ubicacion",
+            "hashtag",
+            "mencion",
+            "pegatina",
+            "sliders",
+            "pregunta",
+        }
         for s in stories_raw:
             if not isinstance(s, dict):
                 continue
@@ -205,13 +236,15 @@ class InstagramPlatform(BaseSocialPlatform):
             except (TypeError, ValueError):
                 dur = 15
             dur = max(3, min(dur, 15))
-            stories.append(InstagramStory(
-                texto=str(s.get("texto") or s.get("text") or "").strip(),
-                sticker_sugerido=sticker,
-                duracion_segundos=dur,
-                imagen_prompt=str(s.get("imagen_prompt") or s.get("visual") or "").strip(),
-                formato=str(s.get("formato") or "vertical 9:16").strip(),
-            ))
+            stories.append(
+                InstagramStory(
+                    texto=str(s.get("texto") or s.get("text") or "").strip(),
+                    sticker_sugerido=sticker,
+                    duracion_segundos=dur,
+                    imagen_prompt=str(s.get("imagen_prompt") or s.get("visual") or "").strip(),
+                    formato=str(s.get("formato") or "vertical 9:16").strip(),
+                )
+            )
         reel_raw = data.get("reel")
         reel = None
         if isinstance(reel_raw, dict) and reel_raw:
@@ -227,7 +260,11 @@ class InstagramPlatform(BaseSocialPlatform):
             feed_caption=caption,
             cta=str(data.get("cta") or self.config.cta).strip(),
             hashtags=list(data.get("hashtags") or []),
-            carousel_items=[str(x).strip() for x in (data.get("carousel_items") or data.get("carousel") or []) if str(x).strip()],
+            carousel_items=[
+                str(x).strip()
+                for x in (data.get("carousel_items") or data.get("carousel") or [])
+                if str(x).strip()
+            ],
             stories=stories,
             reel=reel,
         )
@@ -266,7 +303,9 @@ class InstagramPlatform(BaseSocialPlatform):
             content.carousel_items = [content.title or "Slide 1"]
             warnings.append("Carousel vacío: creado desde el título.")
         if len(content.carousel_items) > 10:
-            warnings.append(f"Carousel excedió 10 slides ({len(content.carousel_items)}); se truncó.")
+            warnings.append(
+                f"Carousel excedió 10 slides ({len(content.carousel_items)}); se truncó."
+            )
             content.carousel_items = content.carousel_items[:10]
         for i, item in enumerate(content.carousel_items):
             t, _ = content.enforce_char_limit(str(item), 200, f"carousel[{i}]")
@@ -274,21 +313,33 @@ class InstagramPlatform(BaseSocialPlatform):
 
         # Stories: 5-10
         if len(content.stories) < 3:
-            warnings.append(f"Stories insuficientes ({len(content.stories)}); se completaron hasta 5.")
-            base_hooks = ["🤯 ¿Sabías que...", "💡 Tip clave", "⚠️ No cometas este error", "✅ Haz esto hoy", "👉 Siguiente paso"]
+            warnings.append(
+                f"Stories insuficientes ({len(content.stories)}); se completaron hasta 5."
+            )
+            base_hooks = [
+                "🤯 ¿Sabías que...",
+                "💡 Tip clave",
+                "⚠️ No cometas este error",
+                "✅ Haz esto hoy",
+                "👉 Siguiente paso",
+            ]
             while len(content.stories) < 5:
                 idx = len(content.stories)
-                content.stories.append(InstagramStory(
-                    texto=base_hooks[idx % len(base_hooks)] + " " + (content.title or ""),
-                    sticker_sugerido="encuesta",
-                    duracion_segundos=15,
-                ))
+                content.stories.append(
+                    InstagramStory(
+                        texto=base_hooks[idx % len(base_hooks)] + " " + (content.title or ""),
+                        sticker_sugerido="encuesta",
+                        duracion_segundos=15,
+                    )
+                )
         elif len(content.stories) > 15:
             warnings.append(f"Stories excedieron 15 ({len(content.stories)}); se truncaron.")
             content.stories = content.stories[:15]
         for s in content.stories:
             s.texto, _ = content.enforce_char_limit(s.texto, 200, "story.texto")
-            s.imagen_prompt, _ = content.enforce_char_limit(s.imagen_prompt, 250, "story.imagen_prompt")
+            s.imagen_prompt, _ = content.enforce_char_limit(
+                s.imagen_prompt, 250, "story.imagen_prompt"
+            )
 
         # Reel: si no existe, crea uno mínimo
         if content.reel is None:
@@ -303,7 +354,9 @@ class InstagramPlatform(BaseSocialPlatform):
             r = content.reel
             r.hook, _ = content.enforce_char_limit(r.hook, 100, "reel.hook")
             r.caption, _ = content.enforce_char_limit(r.caption, 2200, "reel.caption")
-            r.audio_sugerido, _ = content.enforce_char_limit(r.audio_sugerido, 100, "reel.audio_sugerido")
+            r.audio_sugerido, _ = content.enforce_char_limit(
+                r.audio_sugerido, 100, "reel.audio_sugerido"
+            )
             rh, _ = content.clean_hashtags(r.hashtags, 20)
             r.hashtags = rh
         content.warnings = warnings

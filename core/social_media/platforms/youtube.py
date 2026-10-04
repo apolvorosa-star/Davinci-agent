@@ -1,4 +1,5 @@
 """Plataforma YouTube — títulos SEO, descripciones largas, capítulos y tags."""
+
 from __future__ import annotations
 
 import json
@@ -9,7 +10,6 @@ from typing import Any
 from ..base import (
     BaseSocialPlatform,
     PlatformContent,
-    SocialMediaPlatformError,
 )
 
 
@@ -22,7 +22,10 @@ class YouTubeContent(PlatformContent):
     capitulos: list[dict[str, str]] = field(default_factory=list)
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(platform="youtube", **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__})
+        super().__init__(
+            platform="youtube",
+            **{k: v for k, v in kwargs.items() if k in PlatformContent.__dataclass_fields__},
+        )
         self.tags = list(kwargs.get("tags", []) or [])
         self.capitulos = list(kwargs.get("capitulos", []) or [])
 
@@ -124,7 +127,7 @@ class YouTubePlatform(BaseSocialPlatform):
                 elif ch == "}":
                     depth -= 1
                     if depth == 0 and start_idx != -1:
-                        candidate = text[start_idx: idx + 1]
+                        candidate = text[start_idx : idx + 1]
                         try:
                             return json.loads(candidate)
                         except json.JSONDecodeError:
@@ -140,14 +143,17 @@ class YouTubePlatform(BaseSocialPlatform):
             hashtags=list(data.get("hashtags") or data.get("tags") or []),
             tags=list(data.get("tags") or []),
             capitulos=[
-                dict(c) for c in (data.get("capitulos") or data.get("chapters") or [])
+                dict(c)
+                for c in (data.get("capitulos") or data.get("chapters") or [])
                 if isinstance(c, dict)
             ],
         )
         # Extrae hashtags embebidos en la descripción (merge + dedupe)
         if content.body:
             embedded = content.extract_hashtags_from_text(content.body)
-            merged = list(content.hashtags) + [h for h in embedded if h not in set(content.hashtags)]
+            merged = list(content.hashtags) + [
+                h for h in embedded if h not in set(content.hashtags)
+            ]
             content.hashtags = merged
         return content
 
@@ -215,6 +221,7 @@ class YouTubePlatform(BaseSocialPlatform):
             text = f"{content.title} {content.body}".lower()
             common = re.findall(r"[a-záéíóúüñ]{5,}", text)
             from collections import Counter
+
             top = [w for w, _ in Counter(common).most_common(3)]
             content.hashtags = top
             warnings.append("Hashtags vacíos: deducidos automáticamente desde título/descripción.")

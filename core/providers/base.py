@@ -21,17 +21,18 @@ Compatibilidad hacia atrás
 :mod:`core.providers.env_loader`) para no romper código antiguo que la importe
 directamente desde ``base.py``.
 """
+
 from __future__ import annotations
 
 import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any
 
-from .env_loader import expand_env_vars  # noqa: F401  (re-export)
-
+from .env_loader import expand_env_vars
 
 # Espera máxima que _with_retries aceptará de un hint "Retry-After".
 # Pasado este tope se prefiere fallar y saltar al siguiente proveedor de
@@ -69,7 +70,7 @@ class ProviderConfig:
         name: str,
         raw: dict[str, Any],
         ai_root_cfg: dict[str, Any] | None = None,
-    ) -> "ProviderConfig":
+    ) -> ProviderConfig:
         """Factoría que construye una ``ProviderConfig`` desde dict/YAML.
 
         - Expandirá **aquí** todas las variables de entorno ``${VAR}`` (así
@@ -85,9 +86,7 @@ class ProviderConfig:
 
         # Backward compat: el yaml viejo usaba "request_timeout" en vez de
         # "timeout". Aceptamos ambos, "timeout" tiene prioridad.
-        global_timeout = ai_root_cfg.get(
-            "timeout", ai_root_cfg.get("request_timeout", 600)
-        )
+        global_timeout = ai_root_cfg.get("timeout", ai_root_cfg.get("request_timeout", 600))
         global_max_retries = int(ai_root_cfg.get("max_retries", 3))
         global_temperature = float(ai_root_cfg.get("temperature", 0.0))
 
@@ -102,14 +101,10 @@ class ProviderConfig:
             base_url=raw_expanded.get("base_url") or raw_expanded.get("url"),
             url=raw_expanded.get("url") or raw_expanded.get("base_url"),
             system_prompt=raw_expanded.get("system_prompt"),
-            temperature=float(
-                raw_expanded.get("temperature", global_temperature)
-            ),
+            temperature=float(raw_expanded.get("temperature", global_temperature)),
             max_tokens=raw_expanded.get("max_tokens"),
             timeout=float(raw_timeout),
-            max_retries=int(
-                raw_expanded.get("max_retries", global_max_retries)
-            ),
+            max_retries=int(raw_expanded.get("max_retries", global_max_retries)),
             extras={
                 k: v
                 for k, v in raw_expanded.items()
@@ -175,9 +170,7 @@ class RateLimitError(RuntimeError):
         self.retry_after = retry_after
 
 
-_RESET_HINT_RE = re.compile(
-    r"(?:soonest\s+)?reset[^0-9]{0,20}?(\d+)\s*s", re.IGNORECASE
-)
+_RESET_HINT_RE = re.compile(r"(?:soonest\s+)?reset[^0-9]{0,20}?(\d+)\s*s", re.IGNORECASE)
 
 
 def parse_retry_after(resp: Any, *texts: str) -> float | None:
@@ -284,7 +277,7 @@ class BaseProvider(ABC):
     # ------------------------------------------------------------------
     # Helpers protegidos (reutilizables por las subclases)
     # ------------------------------------------------------------------
-    def _effective_system(self, caller_system: Optional[str]) -> str:
+    def _effective_system(self, caller_system: str | None) -> str:
         """Sistema **final** que se envía al modelo.
 
         Prioridad:
@@ -314,7 +307,7 @@ class BaseProvider(ABC):
             RuntimeError: Si se agotan los reintentos sin éxito; el mensaje
                           incluye el último error y el número de intentos.
         """
-        last_error: Optional[Exception] = None
+        last_error: Exception | None = None
         total_attempts = max(1, int(self.config.max_retries))
         start = time.perf_counter()
 
@@ -326,7 +319,7 @@ class BaseProvider(ABC):
                     raise ValueError("La respuesta del proveedor estaba vacía.")
                 latency_ms = int((time.perf_counter() - start) * 1000)
                 return text, latency_ms
-            except Exception as exc:  # noqa: BLE001  (queremos capturar TODO)
+            except Exception as exc:
                 last_error = exc
                 if attempt < total_attempts:
                     wait_seconds = float(2 ** (attempt - 1))
@@ -341,8 +334,7 @@ class BaseProvider(ABC):
                             min(float(hint) + 1.0, _MAX_RATE_LIMIT_WAIT_S),
                         )
                     _LOG.info(
-                        "[%s:%s] intento %d/%d falló (%s); "
-                        "reintentando en %.1fs",
+                        "[%s:%s] intento %d/%d falló (%s); " "reintentando en %.1fs",
                         self.PROVIDER_ID,
                         self.name,
                         attempt,

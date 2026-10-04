@@ -1,25 +1,27 @@
-# Dockerfile for Davinci-Agent
-# -------------------------------------------------
-# Use official slim Python image
+# DaVinci Agent - imagen CLI (transcripcion + generacion de contenido)
+# La GUI (CustomTkinter) no corre en contenedor: usa python app.py en local.
 FROM python:3.11-slim
 
-# Install build dependencies (optional, depends on packages)
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+# ffmpeg es obligatorio: whisper/pydub lo invocan para normalizar el audio.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy dependencies first for cache
+# Dependencias primero para aprovechar la cache de capas.
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-# Copy the rest of the app
 COPY . .
 
-# Expose port (adjust if you run a server)
-EXPOSE 8000
+# Datos y config viven fuera de la imagen (montar como volumenes).
+VOLUME ["/app/input", "/app/output", "/app/config"]
 
-# Default command (adapt if your app entrypoint is elsewhere)
-CMD ["python", "-m", "src.main"]
+# El entrypoint es la CLI: `docker run davinci-agent video.mp4`, `--watch`, `--list`...
+ENTRYPOINT ["python", "main.py"]
+CMD ["--help"]

@@ -4,23 +4,21 @@ import json
 import logging
 import os
 import re
-import shutil
 import sys
-import time
 import traceback
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any
 
 import yaml
 
 from core.media_io import (
     MEDIA_EXTENSIONS as _EXT,
+)
+from core.media_io import (
     ensure_readable_for_whisper,
-    ffmpeg_available,
-    FFMPEG_INSTALL_HINT,
-    media_extensions,
     is_media_extension,
 )
 
@@ -67,7 +65,7 @@ def load_settings(config_path: str | Path | None = None) -> dict[str, Any]:
     if not config_path.exists():
         return default_cfg
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             loaded = yaml.safe_load(f) or {}
         if not isinstance(loaded, dict):
             raise ValueError("settings.yaml debe contener un diccionario raíz")
@@ -79,7 +77,9 @@ def load_settings(config_path: str | Path | None = None) -> dict[str, Any]:
                 merged[k] = v
         return merged
     except (OSError, yaml.YAMLError, ValueError) as exc:
-        print(f"[WARN] No se pudo cargar {config_path.name}: {exc}. Usando defaults.", file=sys.stderr)
+        print(
+            f"[WARN] No se pudo cargar {config_path.name}: {exc}. Usando defaults.", file=sys.stderr
+        )
         return default_cfg
 
 
@@ -150,7 +150,9 @@ def prepare_job_folder(
         if not candidate.exists():
             candidate.mkdir(parents=True, exist_ok=True)
             return candidate
-    raise RuntimeError(f"No se pudo crear carpeta única para '{base_name}' tras {max_attempts} intentos.")
+    raise RuntimeError(
+        f"No se pudo crear carpeta única para '{base_name}' tras {max_attempts} intentos."
+    )
 
 
 def build_report(youtube_data: dict[str, Any]) -> str:
@@ -160,7 +162,7 @@ def build_report(youtube_data: dict[str, Any]) -> str:
     lines: list[str] = []
     lines.append("=" * 72)
     lines.append("METADATOS GENERADOS PARA YOUTUBE")
-    lines.append(f"Generado: {datetime.now(timezone.utc).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    lines.append(f"Generado: {datetime.now(UTC).astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}")
     lines.append("=" * 72)
     lines.append("")
     lines.append("-- TÍTULO -----------------------------------------------------------")
@@ -195,14 +197,14 @@ def record_job(
     jobs_file = output_folder / "jobs.json"
     try:
         if jobs_file.exists():
-            with open(jobs_file, "r", encoding="utf-8") as f:
+            with open(jobs_file, encoding="utf-8") as f:
                 jobs = json.load(f)
             if not isinstance(jobs, list):
                 jobs = []
         else:
             jobs = []
         entry: dict[str, Any] = {
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "archivo": str(media_path.resolve()),
             "nombre": media_path.name,
             "status": status,
@@ -264,7 +266,9 @@ def process_media(
 
     # ---- PRE-FLIGHT: ensure Whisper-readable (preconvierte códecs raros con FFmpeg)
     temp_media: Path | None = None
-    temp_result = ensure_readable_for_whisper(media_path, temp_folder=get_project_root() / settings.get("paths", {}).get("temp", ".tmp"))
+    temp_result = ensure_readable_for_whisper(
+        media_path, temp_folder=get_project_root() / settings.get("paths", {}).get("temp", ".tmp")
+    )
     if temp_result.warnings:
         for w in temp_result.warnings:
             logger.warning("[media_io] %s", w)
@@ -273,15 +277,16 @@ def process_media(
         media_to_transcribe = temp_media
         logger.info(
             "Pre-conversión FFmpeg aplicada a '%s' (códec no standard). WAV listo: %s",
-            media_path.name, temp_media.name,
+            media_path.name,
+            temp_media.name,
         )
     else:
         media_to_transcribe = temp_result.ready_path
 
     job_folder: Path | None = None
     try:
-        from core.transcriber import Transcriber
         from core.ai_engine import AIEngine
+        from core.transcriber import Transcriber
 
         models_cfg = settings.get("models", {}) or {}
         whisper_cfg = models_cfg.get("whisper", {}) or {}
@@ -293,7 +298,9 @@ def process_media(
             transcriber = Transcriber(model_name=model_size)
 
         prompt_ctx = transcriber.prompt_from_filename(media_path.name)
-        transcription = transcriber.transcribe(media_to_transcribe, language=language, prompt=prompt_ctx)
+        transcription = transcriber.transcribe(
+            media_to_transcribe, language=language, prompt=prompt_ctx
+        )
         transcript_ai = transcriber.format_for_ai(transcription)
 
         if ai is None:
@@ -313,7 +320,7 @@ def process_media(
                 "config": {
                     "whisper_model": transcription.get("model"),
                     "ai_default_provider": getattr(ai, "ai_cfg", {}).get("default_provider"),
-                    "ai_available_providers": getattr(ai, "available_providers", lambda: [])(),
+                    "ai_available_providers": getattr(ai, "available_providers", list)(),
                 },
             },
         )
@@ -354,13 +361,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("media", nargs="?", type=Path, help="Archivo multimedia a procesar")
     parser.add_argument("-o", "--output", type=Path, help="Carpeta de salida")
     parser.add_argument("-w", "--watch", action="store_true", help="Activa el modo watcher")
-    parser.add_argument("--list", action="store_true", help="Lista los archivos multimedia en ./input")
+    parser.add_argument(
+        "--list", action="store_true", help="Lista los archivos multimedia en ./input"
+    )
     args = parser.parse_args(argv)
 
     settings = load_settings()
     project_root = get_project_root()
     paths_cfg = settings.get("paths", {}) or {}
-    output_folder = Path(args.output) if args.output else (project_root / paths_cfg.get("output", "output"))
+    output_folder = (
+        Path(args.output) if args.output else (project_root / paths_cfg.get("output", "output"))
+    )
     output_folder.mkdir(parents=True, exist_ok=True)
     logger = _setup_logger(output_folder)
 
@@ -377,6 +388,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.watch:
         from watcher import watch
+
         watch()
         return 0
 

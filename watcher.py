@@ -8,6 +8,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 try:
     from dotenv import load_dotenv
+
     _env_file = Path(__file__).resolve().parent / ".env"
     if _env_file.exists():
         load_dotenv(_env_file, override=False)
@@ -15,14 +16,12 @@ except ImportError:  # pragma: no cover
     pass
 
 from core.ai_engine import AIEngine
-from core.social_media import build_social_report
-from core.transcriber import Transcriber
 from core.media_io import (
     ensure_readable_for_whisper,
-    ffmpeg_available,
     is_media_extension,
-    media_extensions,
 )
+from core.social_media import build_social_report
+from core.transcriber import Transcriber
 from main import (
     _safe_write_json,
     _safe_write_text,
@@ -32,7 +31,6 @@ from main import (
     get_project_root,
     load_settings,
     prepare_job_folder,
-    process_media,
     record_job,
 )
 
@@ -41,7 +39,7 @@ def load_processed(log_path: Path) -> set[str]:
     if not log_path.exists():
         return set()
     try:
-        with open(log_path, "r", encoding="utf-8") as f:
+        with open(log_path, encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, dict):
             return set(data.get("processed", []))
@@ -99,7 +97,9 @@ def process_media_full(
             )
 
         prompt_ctx = transcriber.prompt_from_filename(media_path.name)
-        transcription = transcriber.transcribe(media_to_transcribe, language=language, prompt=prompt_ctx)
+        transcription = transcriber.transcribe(
+            media_to_transcribe, language=language, prompt=prompt_ctx
+        )
         transcript_ai = transcriber.format_for_ai(transcription)
 
         logger.info("Watcher: transcripción OK (%d chars)", len(transcription.get("text", "")))
@@ -118,10 +118,8 @@ def process_media_full(
                 social_bundle.enabled_platforms(),
                 list(social_bundle.errors.keys()),
             )
-        except Exception as social_exc:  # noqa: BLE001
-            logger.warning(
-                "Watcher: fallo social bundle (continuamos con legacy): %s", social_exc
-            )
+        except Exception as social_exc:
+            logger.warning("Watcher: fallo social bundle (continuamos con legacy): %s", social_exc)
 
         # 2) Legacy YouTube (compatibilidad)
         youtube_data = ai.generate_youtube_metadata(transcript_ai, filename=media_path.name)
@@ -165,6 +163,7 @@ def process_media_full(
         return job_folder
     except Exception as exc:
         import traceback
+
         tb = traceback.format_exc()
         logger.error("Watcher: error procesando %s:\n%s", media_path, tb)
         try:
@@ -250,9 +249,7 @@ def watch() -> None:
                 print(f"[{ts}] ✅ OK procesado: {media_path.name}")
             except Exception as exc:
                 short = f"{type(exc).__name__}: {exc}"
-                logger.error(
-                    "Watcher: error procesando %s: %s", media_path, short
-                )
+                logger.error("Watcher: error procesando %s: %s", media_path, short)
                 print(f"[{ts}] ❌ ERROR {media_path.name}: {short}")
         time.sleep(interval)
 

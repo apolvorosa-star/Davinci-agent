@@ -10,17 +10,17 @@ Características:
   * Multi-threading: el procesamiento NUNCA congela la UI.
   * Integración con Worker y SocialMediaManager.
 """
+
 from __future__ import annotations
 
 import json
 import queue
-import sys
 import threading
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox
-from typing import Optional
+from typing import Any
 
 import yaml
 
@@ -31,21 +31,22 @@ except ImportError as exc:  # pragma: no cover - handled at runtime
         "⚠️  CustomTkinter no está instalado.\n"
         "Ejecuta: pip install customtkinter>=5.2.2 windnd>=1.0.1\n"
         f"Error original: {exc}"
-    )
+    ) from exc
 
 try:
-    import windnd  # type: ignore
+    import windnd  # type: ignore  # noqa: F401
+
     HAS_WINDND = True
 except ImportError:
     HAS_WINDND = False
 
-from ui_utils import format_size, open_folder, read_text_file
 from core.media_io import (
-    SUPPORTED_MEDIA_EXTENSIONS,
-    is_media_extension,
-    ffmpeg_available,
     FFMPEG_INSTALL_HINT,
+    SUPPORTED_MEDIA_EXTENSIONS,
+    ffmpeg_available,
+    is_media_extension,
 )
+from ui_utils import format_size, open_folder
 
 # ---------------------------------------------------------------------------
 # Helpers generales
@@ -86,7 +87,7 @@ class DavinciApp(ctk.CTk):
         # ---------------------------------------------------------------
         # 2) Estado interno
         # ---------------------------------------------------------------
-        from main import load_settings, get_project_root
+        from main import get_project_root, load_settings
 
         self.settings: dict = settings or load_settings()
         self.project_root = get_project_root()
@@ -117,7 +118,14 @@ class DavinciApp(ctk.CTk):
         self.tabview = ctk.CTkTabview(self, command=self._on_tab_change)
         self.tabview.pack(fill="both", expand=True, padx=14, pady=(0, 10))
 
-        for tab_name in ("🎬 Inicio", "📲 Redes Sociales", "🤖 IA", "⚙️ Config", "📜 Log", "📊 Resultados"):
+        for tab_name in (
+            "🎬 Inicio",
+            "📲 Redes Sociales",
+            "🤖 IA",
+            "⚙️ Config",
+            "📜 Log",
+            "📊 Resultados",
+        ):
             self.tabview.add(tab_name)
 
         self._build_tab_home()
@@ -166,7 +174,9 @@ class DavinciApp(ctk.CTk):
             ffmpeg_txt = f"🎞️ FFmpeg: ✅ ({(ffmpeg_ver.split(',')[0] if isinstance(ffmpeg_ver, str) else 'OK')[:55]})"
             ffmpeg_color = "#22c55e"
         else:
-            ffmpeg_txt = "🎞️ FFmpeg: ⚠️ NO instalado (instálalo para códecs raros / todos los formatos)."
+            ffmpeg_txt = (
+                "🎞️ FFmpeg: ⚠️ NO instalado (instálalo para códecs raros / todos los formatos)."
+            )
             ffmpeg_color = "#fbbf24"
         ffmpeg_lbl = ctk.CTkLabel(
             header,
@@ -176,14 +186,19 @@ class DavinciApp(ctk.CTk):
         )
         ffmpeg_lbl.pack(side="left", padx=(16, 0))
         if not ffmpeg_ok:
+
             def _show_ffmpeg_hint(_e=None):
                 from tkinter import messagebox as mb
+
                 mb.showinfo(
                     "Instalar FFmpeg — DaVinci Agent",
                     FFMPEG_INSTALL_HINT,
                 )
+
             ffmpeg_lbl.bind("<Button-1>", _show_ffmpeg_hint)
-            ffmpeg_lbl.configure(cursor="hand2", font=ctk.CTkFont(size=11, weight="bold", underline=True))
+            ffmpeg_lbl.configure(
+                cursor="hand2", font=ctk.CTkFont(size=11, weight="bold", underline=True)
+            )
 
         self.btn_open_output = ctk.CTkButton(
             header,
@@ -216,16 +231,24 @@ class DavinciApp(ctk.CTk):
         frame_sel.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         frame_sel.grid_columnconfigure(1, weight=1)
 
-        ctk.CTkLabel(frame_sel, text="📥 Archivos multimedia a procesar:",
-                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, columnspan=4, padx=10, pady=(10, 4), sticky="w")
+        ctk.CTkLabel(
+            frame_sel,
+            text="📥 Archivos multimedia a procesar:",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        ).grid(row=0, column=0, columnspan=4, padx=10, pady=(10, 4), sticky="w")
 
-        self.entry_files = ctk.CTkEntry(frame_sel, placeholder_text="Arrastra archivos aquí o usa el botón Seleccionar…")
+        self.entry_files = ctk.CTkEntry(
+            frame_sel, placeholder_text="Arrastra archivos aquí o usa el botón Seleccionar…"
+        )
         self.entry_files.grid(row=1, column=0, columnspan=3, sticky="ew", padx=10, pady=6)
 
-        ctk.CTkButton(frame_sel, text="Seleccionar…", width=130,
-                      command=self._choose_files).grid(row=1, column=3, padx=(0, 10), pady=6)
+        ctk.CTkButton(frame_sel, text="Seleccionar…", width=130, command=self._choose_files).grid(
+            row=1, column=3, padx=(0, 10), pady=6
+        )
 
-        self.lbl_file_count = ctk.CTkLabel(frame_sel, text="0 archivos seleccionados", text_color="gray70")
+        self.lbl_file_count = ctk.CTkLabel(
+            frame_sel, text="0 archivos seleccionados", text_color="gray70"
+        )
         self.lbl_file_count.grid(row=2, column=0, sticky="w", padx=10, pady=(0, 10))
 
         # Opciones procesamiento + acciones
@@ -234,33 +257,46 @@ class DavinciApp(ctk.CTk):
         for c in range(6):
             frame_opt.grid_columnconfigure(c, weight=1)
 
-        ctk.CTkLabel(frame_opt, text="⚙️ Opciones rápidas:",
-                     font=ctk.CTkFont(size=12, weight="bold")).grid(row=0, column=0, columnspan=6, padx=10, pady=(10, 6), sticky="w")
+        ctk.CTkLabel(
+            frame_opt, text="⚙️ Opciones rápidas:", font=ctk.CTkFont(size=12, weight="bold")
+        ).grid(row=0, column=0, columnspan=6, padx=10, pady=(10, 6), sticky="w")
 
         paths = self.settings.get("paths", {}) or {}
-        self.lbl_input_folder = ctk.CTkLabel(frame_opt, text=f"📥 Entrada: {paths.get('input', './input')}")
+        self.lbl_input_folder = ctk.CTkLabel(
+            frame_opt, text=f"📥 Entrada: {paths.get('input', './input')}"
+        )
         self.lbl_input_folder.grid(row=1, column=0, columnspan=3, sticky="w", padx=10, pady=4)
-        self.lbl_output_folder = ctk.CTkLabel(frame_opt, text=f"📤 Salida : {paths.get('output', './output')}")
+        self.lbl_output_folder = ctk.CTkLabel(
+            frame_opt, text=f"📤 Salida : {paths.get('output', './output')}"
+        )
         self.lbl_output_folder.grid(row=1, column=3, columnspan=3, sticky="w", padx=10, pady=4)
 
         self.btn_process = ctk.CTkButton(
-            frame_opt, text="🚀 PROCESAR", height=44,
+            frame_opt,
+            text="🚀 PROCESAR",
+            height=44,
             font=ctk.CTkFont(size=14, weight="bold"),
             command=self._on_click_process,
         )
         self.btn_process.grid(row=2, column=0, columnspan=2, padx=10, pady=(6, 12), sticky="ew")
 
         self.btn_watch = ctk.CTkButton(
-            frame_opt, text="👀 INICIAR WATCHER", height=44,
-            fg_color="#475569", hover_color="#334155",
+            frame_opt,
+            text="👀 INICIAR WATCHER",
+            height=44,
+            fg_color="#475569",
+            hover_color="#334155",
             font=ctk.CTkFont(size=14, weight="bold"),
             command=self._toggle_watcher,
         )
         self.btn_watch.grid(row=2, column=2, columnspan=2, padx=10, pady=(6, 12), sticky="ew")
 
         self.btn_clear = ctk.CTkButton(
-            frame_opt, text="🧹 Limpiar selección", height=44,
-            fg_color="transparent", border_width=1,
+            frame_opt,
+            text="🧹 Limpiar selección",
+            height=44,
+            fg_color="transparent",
+            border_width=1,
             command=self._clear_selection,
         )
         self.btn_clear.grid(row=2, column=4, columnspan=2, padx=10, pady=(6, 12), sticky="ew")
@@ -273,19 +309,23 @@ class DavinciApp(ctk.CTk):
 
         try:
             from core.ai_engine import AIEngine
+
             ai = AIEngine()
             ai_text = (
                 f"Proveedor IA por defecto:  🔵 {ai.ai_cfg.get('default_provider', '-')}   |   "
                 f"Modelo Whisper:  🟢 {(self.settings.get('models', {}).get('whisper', {}).get('name', 'base'))}"
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             ai_text = f"⚠️  AIEngine no disponible: {exc}"
 
-        ctk.CTkLabel(frame_info, text=ai_text, font=ctk.CTkFont(size=12),
-                     text_color="gray85").pack(fill="x", padx=14, pady=12)
+        ctk.CTkLabel(frame_info, text=ai_text, font=ctk.CTkFont(size=12), text_color="gray85").pack(
+            fill="x", padx=14, pady=12
+        )
 
         # Lista de archivos seleccionados
-        frame_files = ctk.CTkScrollableFrame(tab, label_text="🎞️  Cola de procesamiento (haz doble clic para quitar)")
+        frame_files = ctk.CTkScrollableFrame(
+            tab, label_text="🎞️  Cola de procesamiento (haz doble clic para quitar)"
+        )
         frame_files.grid(row=3, column=0, sticky="nsew", pady=(0, 0))
         frame_files.grid_columnconfigure(0, weight=1)
 
@@ -301,14 +341,19 @@ class DavinciApp(ctk.CTk):
         tab.grid_columnconfigure(1, weight=1)
         tab.grid_rowconfigure(1, weight=1)
 
-        ctk.CTkLabel(tab, text="🟢 Selecciona las plataformas a generar:",
-                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, columnspan=2, padx=10, pady=(10, 8), sticky="w")
+        ctk.CTkLabel(
+            tab,
+            text="🟢 Selecciona las plataformas a generar:",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        ).grid(row=0, column=0, columnspan=2, padx=10, pady=(10, 8), sticky="w")
 
         self.frames_platforms: dict[str, ctk.CTkFrame] = {}
         for idx, (key, name, emoji) in enumerate(PLATFORMS_ORDERED):
             row, col = divmod(idx, 2)
             plat_frame = ctk.CTkFrame(tab)
-            plat_frame.grid(row=row + 1, column=col, sticky="nsew", padx=8, pady=6, ipadx=6, ipady=6)
+            plat_frame.grid(
+                row=row + 1, column=col, sticky="nsew", padx=8, pady=6, ipadx=6, ipady=6
+            )
             plat_frame.grid_columnconfigure(0, weight=1)
             self.frames_platforms[key] = plat_frame
 
@@ -357,12 +402,20 @@ class DavinciApp(ctk.CTk):
         tab.grid_columnconfigure(0, weight=1)
         tab.grid_rowconfigure(2, weight=1)
 
-        ctk.CTkLabel(tab, text="🤖 Proveedores de Inteligencia Artificial disponibles:",
-                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, padx=10, pady=(10, 8), sticky="w")
+        ctk.CTkLabel(
+            tab,
+            text="🤖 Proveedores de Inteligencia Artificial disponibles:",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        ).grid(row=0, column=0, padx=10, pady=(10, 8), sticky="w")
 
-        ai_cfg = (self.settings.get("ai") or {})
-        self.ai_status_label = ctk.CTkLabel(tab, text="Consultando disponibilidad de proveedores…",
-                                            font=ctk.CTkFont(size=12), text_color="gray70", justify="left")
+        ai_cfg = self.settings.get("ai") or {}
+        self.ai_status_label = ctk.CTkLabel(
+            tab,
+            text="Consultando disponibilidad de proveedores…",
+            font=ctk.CTkFont(size=12),
+            text_color="gray70",
+            justify="left",
+        )
         self.ai_status_label.grid(row=1, column=0, padx=10, pady=(0, 8), sticky="ew")
 
         self.ai_textbox = ctk.CTkTextbox(tab, wrap="word", font=ctk.CTkFont("Consolas", 12))
@@ -376,10 +429,15 @@ class DavinciApp(ctk.CTk):
     def _refresh_ai_status(self) -> None:
         try:
             from core.ai_engine import AIEngine
+
             ai = AIEngine()
             avail = ai.available_providers()
             default = ai.ai_cfg.get("default_provider", "-")
-            errors = ai.get_provider_errors() if hasattr(ai, "get_provider_errors") else dict(ai._provider_errors)
+            errors = (
+                ai.get_provider_errors()
+                if hasattr(ai, "get_provider_errors")
+                else dict(ai._provider_errors)
+            )
             lines = [
                 f"✅ Proveedor IA por defecto:  {default}",
                 f"✅ Proveedores disponibles :  {', '.join(avail) if avail else '(ninguno funcional)'}",
@@ -391,7 +449,7 @@ class DavinciApp(ctk.CTk):
                 for name, err in errors.items():
                     lines.append(f"  · {name:<22}  →  {err}")
             self.ai_status_label.configure(text="\n".join(lines), text_color="gray90")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.ai_status_label.configure(text=f"⚠️  Error AIEngine: {exc}", text_color="#f87171")
 
     # =====================================================================
@@ -434,33 +492,43 @@ class DavinciApp(ctk.CTk):
             widgets: dict[str, Any] = {}
             row = 0
 
-            ctk.CTkLabel(prov_tab, text="Habilitado:").grid(row=row, column=0, padx=10, pady=4, sticky="w")
+            ctk.CTkLabel(prov_tab, text="Habilitado:").grid(
+                row=row, column=0, padx=10, pady=4, sticky="w"
+            )
             widgets["enabled"] = ctk.CTkCheckBox(prov_tab, text="")
             if prov_cfg.get("enabled"):
                 widgets["enabled"].select()
             widgets["enabled"].grid(row=row, column=1, padx=10, pady=4, sticky="w")
             row += 1
 
-            ctk.CTkLabel(prov_tab, text="Modelo:").grid(row=row, column=0, padx=10, pady=4, sticky="w")
+            ctk.CTkLabel(prov_tab, text="Modelo:").grid(
+                row=row, column=0, padx=10, pady=4, sticky="w"
+            )
             widgets["model"] = ctk.CTkEntry(prov_tab)
             widgets["model"].insert(0, str(prov_cfg.get("model", "")))
             widgets["model"].grid(row=row, column=1, padx=10, pady=4, sticky="ew")
             row += 1
 
-            ctk.CTkLabel(prov_tab, text="API Key:").grid(row=row, column=0, padx=10, pady=4, sticky="w")
+            ctk.CTkLabel(prov_tab, text="API Key:").grid(
+                row=row, column=0, padx=10, pady=4, sticky="w"
+            )
             widgets["api_key"] = ctk.CTkEntry(prov_tab, show="*")
             widgets["api_key"].insert(0, str(prov_cfg.get("api_key", "")))
             widgets["api_key"].grid(row=row, column=1, padx=10, pady=4, sticky="ew")
             row += 1
 
             url_label = "URL:" if "url" in prov_cfg else "Base URL:"
-            ctk.CTkLabel(prov_tab, text=url_label).grid(row=row, column=0, padx=10, pady=4, sticky="w")
+            ctk.CTkLabel(prov_tab, text=url_label).grid(
+                row=row, column=0, padx=10, pady=4, sticky="w"
+            )
             widgets["base_url"] = ctk.CTkEntry(prov_tab)
             widgets["base_url"].insert(0, str(prov_cfg.get("base_url") or prov_cfg.get("url", "")))
             widgets["base_url"].grid(row=row, column=1, padx=10, pady=4, sticky="ew")
             row += 1
 
-            ctk.CTkLabel(prov_tab, text="Guía / system prompt:").grid(row=row, column=0, padx=10, pady=4, sticky="nw")
+            ctk.CTkLabel(prov_tab, text="Guía / system prompt:").grid(
+                row=row, column=0, padx=10, pady=4, sticky="nw"
+            )
             widgets["system_prompt"] = ctk.CTkTextbox(prov_tab, wrap="word", height=80)
             widgets["system_prompt"].insert("1.0", str(prov_cfg.get("system_prompt", "")).strip())
             widgets["system_prompt"].grid(row=row, column=1, sticky="nsew", padx=10, pady=4)
@@ -471,9 +539,13 @@ class DavinciApp(ctk.CTk):
 
         whisper_tab = self.provider_tabview.add("Whisper")
         whisper_tab.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(whisper_tab, text="Modelo Whisper:").grid(row=0, column=0, padx=10, pady=4, sticky="w")
+        ctk.CTkLabel(whisper_tab, text="Modelo Whisper:").grid(
+            row=0, column=0, padx=10, pady=4, sticky="w"
+        )
         self.cfg_whisper = ctk.CTkEntry(whisper_tab)
-        self.cfg_whisper.insert(0, str((self.settings.get("models", {}).get("whisper") or {}).get("name", "base")))
+        self.cfg_whisper.insert(
+            0, str((self.settings.get("models", {}).get("whisper") or {}).get("name", "base"))
+        )
         self.cfg_whisper.grid(row=0, column=1, padx=10, pady=4, sticky="ew")
 
         ctk.CTkButton(
@@ -486,8 +558,10 @@ class DavinciApp(ctk.CTk):
         try:
             root = self.project_root
             user_cfg_path = root / "config" / "settings.user.yaml"
-            source_path = user_cfg_path if user_cfg_path.exists() else root / "config" / "settings.yaml"
-            with open(source_path, "r", encoding="utf-8") as f:
+            source_path = (
+                user_cfg_path if user_cfg_path.exists() else root / "config" / "settings.yaml"
+            )
+            with open(source_path, encoding="utf-8") as f:
                 cfg = yaml.safe_load(f) or {}
             cfg.setdefault("ai", {})
             cfg["ai"].setdefault("providers", {})
@@ -516,9 +590,14 @@ class DavinciApp(ctk.CTk):
             with open(user_cfg_path, "w", encoding="utf-8") as f:
                 yaml.dump(cfg, f, allow_unicode=True, sort_keys=False)
             self.settings = cfg
-            self._append_log("OK", "Configuración guardada en config/settings.user.yaml. Reinicia DaVinci para recargar proveedores.")
-        except Exception as exc:  # noqa: BLE001
-            messagebox.showerror("Error al guardar", f"No se pudo guardar la configuración:\n\n{exc}")
+            self._append_log(
+                "OK",
+                "Configuración guardada en config/settings.user.yaml. Reinicia DaVinci para recargar proveedores.",
+            )
+        except Exception as exc:
+            messagebox.showerror(
+                "Error al guardar", f"No se pudo guardar la configuración:\n\n{exc}"
+            )
 
     # =====================================================================
     # 🔩 Tab Log
@@ -529,8 +608,9 @@ class DavinciApp(ctk.CTk):
         tab.grid_rowconfigure(1, weight=1)
         tab.grid_rowconfigure(3, weight=0)
 
-        ctk.CTkLabel(tab, text="📜 Registro de actividad en vivo:",
-                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, padx=10, pady=(10, 6), sticky="w")
+        ctk.CTkLabel(
+            tab, text="📜 Registro de actividad en vivo:", font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=0, padx=10, pady=(10, 6), sticky="w")
 
         self.log_textbox = ctk.CTkTextbox(tab, wrap="word", font=ctk.CTkFont("Consolas", 12))
         self.log_textbox.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 8))
@@ -553,12 +633,16 @@ class DavinciApp(ctk.CTk):
         header.grid(row=0, column=0, sticky="ew", pady=(10, 8))
         header.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(header, text="📊 Últimos trabajos procesados:",
-                     font=ctk.CTkFont(size=13, weight="bold")).grid(row=0, column=0, sticky="w", padx=10, pady=10)
-        ctk.CTkButton(header, text="🔄 Actualizar", width=120,
-                      command=self._refresh_results).grid(row=0, column=1, padx=10, pady=10)
+        ctk.CTkLabel(
+            header, text="📊 Últimos trabajos procesados:", font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+        ctk.CTkButton(header, text="🔄 Actualizar", width=120, command=self._refresh_results).grid(
+            row=0, column=1, padx=10, pady=10
+        )
 
-        self.results_scroll = ctk.CTkScrollableFrame(tab, label_text="Jobs (doble clic sobre una tarjeta para abrir su carpeta)")
+        self.results_scroll = ctk.CTkScrollableFrame(
+            tab, label_text="Jobs (doble clic sobre una tarjeta para abrir su carpeta)"
+        )
         self.results_scroll.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 12))
         self.results_scroll.grid_columnconfigure(0, weight=1)
         self.result_cards: list[tuple[ctk.CTkFrame, Path]] = []
@@ -576,11 +660,11 @@ class DavinciApp(ctk.CTk):
         jobs: list[dict] = []
         if jobs_file.exists():
             try:
-                with open(jobs_file, "r", encoding="utf-8") as f:
+                with open(jobs_file, encoding="utf-8") as f:
                     loaded = json.load(f)
                 if isinstance(loaded, list):
                     jobs = list(reversed(loaded))[:50]
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
 
         for i, job in enumerate(jobs):
@@ -599,24 +683,35 @@ class DavinciApp(ctk.CTk):
             card.grid(row=i, column=0, sticky="ew", pady=4, padx=2, ipady=6)
             card.grid_columnconfigure(1, weight=1)
 
-            pill = ctk.CTkLabel(card, text=str(status).upper(),
-                                fg_color=color, text_color="white", corner_radius=6,
-                                font=ctk.CTkFont(size=10, weight="bold"), width=90)
+            pill = ctk.CTkLabel(
+                card,
+                text=str(status).upper(),
+                fg_color=color,
+                text_color="white",
+                corner_radius=6,
+                font=ctk.CTkFont(size=10, weight="bold"),
+                width=90,
+            )
             pill.grid(row=0, column=0, rowspan=3, padx=10, pady=6, sticky="n")
 
-            ctk.CTkLabel(card, text=f"🎞️  {name}", font=ctk.CTkFont(size=12, weight="bold"),
-                         anchor="w").grid(row=0, column=1, sticky="ew", padx=4, pady=(6, 0))
-            ctk.CTkLabel(card, text=f"🕒 {ts}", font=ctk.CTkFont(size=11), text_color="gray70",
-                         anchor="w").grid(row=1, column=1, sticky="ew", padx=4)
-            line3 = f"📂 {str(folder_path)}" if folder_path else ""
+            ctk.CTkLabel(
+                card, text=f"🎞️  {name}", font=ctk.CTkFont(size=12, weight="bold"), anchor="w"
+            ).grid(row=0, column=1, sticky="ew", padx=4, pady=(6, 0))
+            ctk.CTkLabel(
+                card, text=f"🕒 {ts}", font=ctk.CTkFont(size=11), text_color="gray70", anchor="w"
+            ).grid(row=1, column=1, sticky="ew", padx=4)
+            line3 = f"📂 {folder_path!s}" if folder_path else ""
             if status == "error":
                 line3 += f"   ❌ {job.get('error', '')}"
-            ctk.CTkLabel(card, text=line3, font=ctk.CTkFont(size=11), text_color="gray80",
-                         anchor="w").grid(row=2, column=1, sticky="ew", padx=4, pady=(0, 6))
+            ctk.CTkLabel(
+                card, text=line3, font=ctk.CTkFont(size=11), text_color="gray80", anchor="w"
+            ).grid(row=2, column=1, sticky="ew", padx=4, pady=(0, 6))
 
             if folder_path and folder_path.exists():
+
                 def _make_open(p: Path):
                     return lambda _e=None: open_folder(p)
+
                 for w in (card, pill):
                     w.bind("<Double-Button-1>", _make_open(folder_path))
 
@@ -629,11 +724,17 @@ class DavinciApp(ctk.CTk):
         footer = ctk.CTkFrame(self, height=34, corner_radius=0, fg_color="transparent")
         footer.pack(fill="x", padx=14, pady=(0, 8))
         footer.pack_propagate(False)
-        self.footer_status = ctk.CTkLabel(footer, text="Listo.", font=ctk.CTkFont(size=11), text_color="gray70", anchor="w")
+        self.footer_status = ctk.CTkLabel(
+            footer, text="Listo.", font=ctk.CTkFont(size=11), text_color="gray70", anchor="w"
+        )
         self.footer_status.pack(side="left")
         social_count = sum(int(v.get()) for v in self.platform_vars.values())
-        ctk.CTkLabel(footer, text=f"Redes activas: {social_count}/6",
-                     font=ctk.CTkFont(size=11), text_color="gray70").pack(side="right")
+        ctk.CTkLabel(
+            footer,
+            text=f"Redes activas: {social_count}/6",
+            font=ctk.CTkFont(size=11),
+            text_color="gray70",
+        ).pack(side="right")
 
     # =====================================================================
     # 🎯 Callbacks varios
@@ -672,14 +773,20 @@ class DavinciApp(ctk.CTk):
             user32.SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
             user32.CallWindowProcW.restype = ctypes.c_longlong
             user32.CallWindowProcW.argtypes = [
-                ctypes.c_void_p, wintypes.HWND, wintypes.UINT,
-                wintypes.WPARAM, wintypes.LPARAM,
+                ctypes.c_void_p,
+                wintypes.HWND,
+                wintypes.UINT,
+                wintypes.WPARAM,
+                wintypes.LPARAM,
             ]
             shell32.DragAcceptFiles.restype = None
             shell32.DragAcceptFiles.argtypes = [wintypes.HWND, ctypes.c_int]
             shell32.DragQueryFileW.restype = wintypes.UINT
             shell32.DragQueryFileW.argtypes = [
-                wintypes.WPARAM, wintypes.UINT, wintypes.LPWSTR, wintypes.UINT,
+                wintypes.WPARAM,
+                wintypes.UINT,
+                wintypes.LPWSTR,
+                wintypes.UINT,
             ]
             shell32.DragFinish.restype = None
             shell32.DragFinish.argtypes = [wintypes.WPARAM]
@@ -700,12 +807,15 @@ class DavinciApp(ctk.CTk):
                         files = _get_dropped_files(wparam)
                         shell32.DragFinish(wparam)
                         self._dnd_queue.put(files)
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         pass
                     return 0
                 return user32.CallWindowProcW(
                     self._old_wndproc_ptr,
-                    hwnd, msg, wparam, lparam,
+                    hwnd,
+                    msg,
+                    wparam,
+                    lparam,
                 )
 
             hwnd = self.winfo_id()
@@ -718,8 +828,10 @@ class DavinciApp(ctk.CTk):
                 err = kernel32.GetLastError()
                 self._append_log("WARN", f"⚠️ SetWindowLongPtrW falló (error {err}).")
             else:
-                self._append_log("INFO", f"✅ Arrastrar y soltar activado (hwnd={hwnd}, prev={prev}).")
-        except Exception as exc:  # noqa: BLE001
+                self._append_log(
+                    "INFO", f"✅ Arrastrar y soltar activado (hwnd={hwnd}, prev={prev})."
+                )
+        except Exception as exc:
             self._append_log("WARN", f"⚠️ No se pudo activar drag & drop: {exc}")
 
     def _on_dropped_files(self, files: list) -> None:
@@ -729,18 +841,26 @@ class DavinciApp(ctk.CTk):
                 path = Path(raw.decode("utf-8") if isinstance(raw, bytes) else str(raw))
                 if path.is_dir():
                     for child in path.rglob("*"):
-                        if child.is_file() and is_media_extension(child) and child not in self.selected_files:
+                        if (
+                            child.is_file()
+                            and is_media_extension(child)
+                            and child not in self.selected_files
+                        ):
                             self.selected_files.append(child)
                             added += 1
-                elif path.is_file() and is_media_extension(path) and path not in self.selected_files:
+                elif (
+                    path.is_file() and is_media_extension(path) and path not in self.selected_files
+                ):
                     self.selected_files.append(path)
                     added += 1
                 elif path.is_file() and path not in self.selected_files:
                     # Formato no en lista: lo aceptamos igualmente (puede que sea nuevo)
                     self.selected_files.append(path)
                     added += 1
-                    self._append_log("WARN", f"Extensión no estándar '{path.suffix}'; procesando de todos modos.")
-            except Exception:  # noqa: BLE001
+                    self._append_log(
+                        "WARN", f"Extensión no estándar '{path.suffix}'; procesando de todos modos."
+                    )
+            except Exception:
                 continue
         self._render_file_list()
         if added:
@@ -750,15 +870,67 @@ class DavinciApp(ctk.CTk):
         sorted_exts = sorted(SUPPORTED_MEDIA_EXTENSIONS)
         filetypes = [
             ("Multimedia soportado (60+ formatos)", " ".join(f"*{e}" for e in sorted_exts)),
-            ("Vídeos", " ".join(f"*{e}" for e in sorted_exts if e in {
-                ".mp4",".m4v",".mov",".avi",".mkv",".webm",".wmv",".flv",".3gp",".mpeg",".mpg",".ts",".m2ts",".mxf",".vob",".ogv",".f4v",".rmvb",".mts",
-            })),
-            ("Audios", " ".join(f"*{e}" for e in sorted_exts if e in {
-                ".mp3",".wav",".m4a",".m4b",".flac",".ogg",".oga",".opus",".wma",".aac",".aiff",".aif",".alac",".amr",".ape",".au",".pcm",
-            })),
+            (
+                "Vídeos",
+                " ".join(
+                    f"*{e}"
+                    for e in sorted_exts
+                    if e
+                    in {
+                        ".mp4",
+                        ".m4v",
+                        ".mov",
+                        ".avi",
+                        ".mkv",
+                        ".webm",
+                        ".wmv",
+                        ".flv",
+                        ".3gp",
+                        ".mpeg",
+                        ".mpg",
+                        ".ts",
+                        ".m2ts",
+                        ".mxf",
+                        ".vob",
+                        ".ogv",
+                        ".f4v",
+                        ".rmvb",
+                        ".mts",
+                    }
+                ),
+            ),
+            (
+                "Audios",
+                " ".join(
+                    f"*{e}"
+                    for e in sorted_exts
+                    if e
+                    in {
+                        ".mp3",
+                        ".wav",
+                        ".m4a",
+                        ".m4b",
+                        ".flac",
+                        ".ogg",
+                        ".oga",
+                        ".opus",
+                        ".wma",
+                        ".aac",
+                        ".aiff",
+                        ".aif",
+                        ".alac",
+                        ".amr",
+                        ".ape",
+                        ".au",
+                        ".pcm",
+                    }
+                ),
+            ),
             ("Todos los archivos", "*.*"),
         ]
-        chosen = filedialog.askopenfilenames(title="Selecciona archivos multimedia", filetypes=filetypes)
+        chosen = filedialog.askopenfilenames(
+            title="Selecciona archivos multimedia", filetypes=filetypes
+        )
         for f in chosen:
             p = Path(f)
             if p not in self.selected_files:
@@ -789,11 +961,21 @@ class DavinciApp(ctk.CTk):
 
                 ctk.CTkLabel(row_frame, text=f"{i+1:>2}.", width=28).grid(row=0, column=0, padx=6)
                 ctk.CTkLabel(row_frame, text=p.name, anchor="w").grid(row=0, column=1, sticky="ew")
-                ctk.CTkLabel(row_frame, text=sz, width=90, text_color="gray60").grid(row=0, column=2, padx=8)
+                ctk.CTkLabel(row_frame, text=sz, width=90, text_color="gray60").grid(
+                    row=0, column=2, padx=8
+                )
+
                 def _rem(idx: int, rf: ctk.CTkFrame):
                     return lambda _e=None: self._remove_file(idx, rf)
-                btn = ctk.CTkButton(row_frame, text="✕ Quitar", width=90, fg_color="#7f1d1d",
-                                    hover_color="#991b1b", command=_rem(i, row_frame))
+
+                btn = ctk.CTkButton(
+                    row_frame,
+                    text="✕ Quitar",
+                    width=90,
+                    fg_color="#7f1d1d",
+                    hover_color="#991b1b",
+                    command=_rem(i, row_frame),
+                )
                 btn.grid(row=0, column=3, padx=6)
                 row_frame.bind("<Double-Button-1>", _rem(i, row_frame))
         self.lbl_file_count.configure(text=f"{len(self.selected_files)} archivos seleccionados")
@@ -824,33 +1006,48 @@ class DavinciApp(ctk.CTk):
     # =====================================================================
     def _on_click_process(self) -> None:
         if self.running:
-            messagebox.showinfo(self.APP_TITLE, "Ya hay una tarea en ejecución. Espera a que termine.")
+            messagebox.showinfo(
+                self.APP_TITLE, "Ya hay una tarea en ejecución. Espera a que termine."
+            )
             return
         if not self.selected_files:
-            messagebox.showwarning(self.APP_TITLE, "Primero selecciona al menos 1 archivo multimedia.")
+            messagebox.showwarning(
+                self.APP_TITLE, "Primero selecciona al menos 1 archivo multimedia."
+            )
             return
         self.running = True
         self.btn_process.configure(state="disabled", text="⏳ PROCESANDO…")
         self.progress_bar.set(0.0)
         self.progress_label.configure(text="0%  —  iniciando…")
-        self._append_log("RUN", f"🚀 Iniciando procesamiento de {len(self.selected_files)} archivo(s).")
+        self._append_log(
+            "RUN", f"🚀 Iniciando procesamiento de {len(self.selected_files)} archivo(s)."
+        )
         try:
             from worker import ProcessingWorker
+
             target_file = self.selected_files.pop(0)
-            t = ProcessingWorker(target_file, self.message_queue, settings=self._build_effective_settings(), daemon=True)
+            t = ProcessingWorker(
+                target_file,
+                self.message_queue,
+                settings=self._build_effective_settings(),
+                daemon=True,
+            )
             self.worker_thread = t
             t.start()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self._append_log("ERROR", f"Fallo al lanzar worker: {type(exc).__name__}: {exc}")
             self._reset_run_state()
 
     def _build_effective_settings(self) -> dict:
         """Clona settings.yaml pero actualiza habilitación de plataformas desde los toggles GUI."""
         import copy
+
         merged = copy.deepcopy(self.settings)
         if "social_media" not in merged or not isinstance(merged["social_media"], dict):
             merged["social_media"] = {}
-        if "platforms" not in merged["social_media"] or not isinstance(merged["social_media"]["platforms"], dict):
+        if "platforms" not in merged["social_media"] or not isinstance(
+            merged["social_media"]["platforms"], dict
+        ):
             merged["social_media"]["platforms"] = {}
         for key, var in self.platform_vars.items():
             merged["social_media"]["platforms"].setdefault(key, {})
@@ -865,7 +1062,9 @@ class DavinciApp(ctk.CTk):
             if self.watcher_thread and self.watcher_thread.is_alive():
                 return
             self.watcher_active = True
-            self.btn_watch.configure(text="🛑 DETENER WATCHER", fg_color="#7f1d1d", hover_color="#991b1b")
+            self.btn_watch.configure(
+                text="🛑 DETENER WATCHER", fg_color="#7f1d1d", hover_color="#991b1b"
+            )
             t = threading.Thread(target=self._watcher_loop, daemon=True)
             self.watcher_thread = t
             t.start()
@@ -873,13 +1072,17 @@ class DavinciApp(ctk.CTk):
             self.footer_status.configure(text="👀 Watcher activo")
         else:
             self.watcher_active = False
-            self.btn_watch.configure(text="👀 INICIAR WATCHER", fg_color="#475569", hover_color="#334155")
+            self.btn_watch.configure(
+                text="👀 INICIAR WATCHER", fg_color="#475569", hover_color="#334155"
+            )
             self._append_log("INFO", "🛑 Watcher detenido.")
             self.footer_status.configure(text="Listo.")
 
     def _watcher_loop(self) -> None:
         import time
-        from main import find_media_files, load_settings
+
+        from main import find_media_files
+
         settings = self._build_effective_settings()
         paths_cfg = settings.get("paths", {}) or {}
         input_folder = self.project_root / paths_cfg.get("input", "input")
@@ -890,11 +1093,11 @@ class DavinciApp(ctk.CTk):
         processed: set[str] = set()
         if processed_log.exists():
             try:
-                with open(processed_log, "r", encoding="utf-8") as f:
+                with open(processed_log, encoding="utf-8") as f:
                     data = json.load(f)
                 if isinstance(data, list):
                     processed = set(data)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 processed = set()
         interval = (settings.get("watcher", {}) or {}).get("interval_seconds", 10)
         while self.watcher_active:
@@ -904,28 +1107,50 @@ class DavinciApp(ctk.CTk):
                     continue
                 self.message_queue.put({"type": "watcher_new", "data": str(media)})
                 try:
-                    from main import _setup_logger, prepare_job_folder, record_job, _safe_write_json, _safe_write_text, build_report
                     from core.ai_engine import AIEngine
-                    from core.transcriber import Transcriber
                     from core.social_media import build_social_report
+                    from core.transcriber import Transcriber
+                    from main import (
+                        _safe_write_json,
+                        _safe_write_text,
+                        _setup_logger,
+                        build_report,
+                        prepare_job_folder,
+                        record_job,
+                    )
 
                     logger = _setup_logger(output_folder)
                     models_cfg = settings.get("models", {}) or {}
                     whisper_cfg = models_cfg.get("whisper", {}) or {}
                     transcription_cfg = settings.get("transcription", {}) or {}
-                    model_size = transcription_cfg.get("model_size") or whisper_cfg.get("name", "base")
-                    language = transcription_cfg.get("language") or whisper_cfg.get("language", "es")
+                    model_size = transcription_cfg.get("model_size") or whisper_cfg.get(
+                        "name", "base"
+                    )
+                    language = transcription_cfg.get("language") or whisper_cfg.get(
+                        "language", "es"
+                    )
                     transcriber = Transcriber(model_name=model_size)
                     ai = AIEngine()
 
-                    self.message_queue.put({"type": "status", "data": f"[Watcher] Transcribiendo {media.name}…"})
+                    self.message_queue.put(
+                        {"type": "status", "data": f"[Watcher] Transcribiendo {media.name}…"}
+                    )
                     prompt_ctx = transcriber.prompt_from_filename(media.name)
-                    transcription = transcriber.transcribe(media, language=language, prompt=prompt_ctx)
+                    transcription = transcriber.transcribe(
+                        media, language=language, prompt=prompt_ctx
+                    )
                     transcript_ai = transcriber.format_for_ai(transcription)
 
                     self.message_queue.put({"type": "progress", "data": 0.4})
-                    self.message_queue.put({"type": "status", "data": f"[Watcher] Generando bundle social para {media.name}…"})
-                    social_bundle = ai.generate_social_media_bundle(transcript_ai, filename=media.name, settings=settings)
+                    self.message_queue.put(
+                        {
+                            "type": "status",
+                            "data": f"[Watcher] Generando bundle social para {media.name}…",
+                        }
+                    )
+                    social_bundle = ai.generate_social_media_bundle(
+                        transcript_ai, filename=media.name, settings=settings
+                    )
                     self.message_queue.put({"type": "progress", "data": 0.8})
 
                     yt_legacy = ai.generate_youtube_metadata(transcript_ai, filename=media.name)
@@ -933,7 +1158,9 @@ class DavinciApp(ctk.CTk):
                     job_folder = prepare_job_folder(output_folder, media.stem, media.stem)
                     _safe_write_text(job_folder / "resultado_youtube.txt", build_report(yt_legacy))
                     _safe_write_text(job_folder / "transcripcion.txt", build_report(yt_legacy))
-                    _safe_write_text(job_folder / "transcripcion_raw.txt", transcription.get("text", ""))
+                    _safe_write_text(
+                        job_folder / "transcripcion_raw.txt", transcription.get("text", "")
+                    )
 
                     payload = {
                         "archivo": str(media.resolve()),
@@ -953,24 +1180,29 @@ class DavinciApp(ctk.CTk):
                             json.dump(sorted(processed), f, ensure_ascii=False, indent=2)
                     except OSError:
                         pass
-                    self.message_queue.put({
-                        "type": "done",
-                        "data": {
-                            "job_folder": str(job_folder),
-                            "watcher": True,
-                            "redes_sociales": social_bundle.enabled_platforms(),
-                            "errores_redes": social_bundle.errors,
-                        },
-                    })
-                except Exception as exc:  # noqa: BLE001
+                    self.message_queue.put(
+                        {
+                            "type": "done",
+                            "data": {
+                                "job_folder": str(job_folder),
+                                "watcher": True,
+                                "redes_sociales": social_bundle.enabled_platforms(),
+                                "errores_redes": social_bundle.errors,
+                            },
+                        }
+                    )
+                except Exception as exc:
                     import traceback
-                    self.message_queue.put({
-                        "type": "error",
-                        "data": {
-                            "message": f"[Watcher] Falló {media.name}: {type(exc).__name__}: {exc}",
-                            "traceback": traceback.format_exc(),
-                        },
-                    })
+
+                    self.message_queue.put(
+                        {
+                            "type": "error",
+                            "data": {
+                                "message": f"[Watcher] Falló {media.name}: {type(exc).__name__}: {exc}",
+                                "traceback": traceback.format_exc(),
+                            },
+                        }
+                    )
             for _ in range(interval):
                 if not self.watcher_active:
                     break
@@ -999,7 +1231,7 @@ class DavinciApp(ctk.CTk):
                 pass
             self.log_textbox.see("end")
             self.log_textbox.configure(state="disabled")
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
     # =====================================================================
@@ -1020,7 +1252,9 @@ class DavinciApp(ctk.CTk):
                     except (TypeError, ValueError):
                         val = 0.0
                     self.progress_bar.set(min(1.0, max(0.0, val)))
-                    self.progress_label.configure(text=f"{int(val * 100)}%  —  {self.footer_status.cget('text')}")
+                    self.progress_label.configure(
+                        text=f"{int(val * 100)}%  —  {self.footer_status.cget('text')}"
+                    )
                 elif mtype == "warning":
                     self._append_log("WARN", str(data))
                 elif mtype == "error":
@@ -1032,14 +1266,17 @@ class DavinciApp(ctk.CTk):
                                 self._append_log("ERROR", "  | " + line)
                     else:
                         self._append_log("ERROR", str(data))
-                    messagebox.showerror(self.APP_TITLE, str(data.get("message", data) if isinstance(data, dict) else data))
+                    messagebox.showerror(
+                        self.APP_TITLE,
+                        str(data.get("message", data) if isinstance(data, dict) else data),
+                    )
                     self._reset_run_state()
                 elif mtype == "done":
                     self._append_log("OK", f"✅ Tarea completada → {data}")
                     try:
                         self.progress_bar.set(1.0)
                         self.progress_label.configure(text="100%  —  completado")
-                    except Exception:  # noqa: BLE001
+                    except Exception:
                         pass
                     self._reset_run_state()
                     # Continúa con el siguiente archivo si hay
@@ -1047,8 +1284,12 @@ class DavinciApp(ctk.CTk):
                         self.after(250, self._on_click_process)
                     self._refresh_results()
                 elif mtype == "watcher_new":
-                    self._append_log("RUN", f"👀 Watcher detectó nuevo archivo: {Path(str(data)).name}")
-                    self.footer_status.configure(text=f"[Watcher] Procesando {Path(str(data)).name}")
+                    self._append_log(
+                        "RUN", f"👀 Watcher detectó nuevo archivo: {Path(str(data)).name}"
+                    )
+                    self.footer_status.configure(
+                        text=f"[Watcher] Procesando {Path(str(data)).name}"
+                    )
                 else:
                     self._append_log("INFO", f"[{mtype}] {data}")
         except queue.Empty:
@@ -1083,6 +1324,7 @@ def launch_gui(settings: dict | None = None) -> int:
         app = DavinciApp(settings=settings)
     except Exception as exc:  # pragma: no cover - solo feedback fatal
         import traceback
+
         traceback.print_exc()
         try:
             messagebox.showerror(

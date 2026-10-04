@@ -4,10 +4,10 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
 
 SCENE_HEADING_RE = re.compile(
     r"^(?P<place>INT\.?|EXT\.?|INT\.?/EXT\.?|EXT\.?/INT\.?)\s+(?P<location>.+?)(?:\s*[-–—]\s*(?P<time>.+))?$",
@@ -16,16 +16,50 @@ SCENE_HEADING_RE = re.compile(
 CHARACTER_RE = re.compile(r"^[A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ0-9 ._()'-]{1,40}$")
 SENTENCE_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 ACTION_WORDS = {
-    "abre", "avanza", "camina", "corre", "entra", "gira", "mira", "sale",
-    "salta", "sube", "baja", "cruza", "descubre", "cae", "levanta", "huye",
+    "abre",
+    "avanza",
+    "camina",
+    "corre",
+    "entra",
+    "gira",
+    "mira",
+    "sale",
+    "salta",
+    "sube",
+    "baja",
+    "cruza",
+    "descubre",
+    "cae",
+    "levanta",
+    "huye",
 }
 EMOTIONAL_WORDS = {
-    "llora", "sonríe", "susurra", "tiembla", "miedo", "lágrima", "silencio",
-    "respira", "rostro", "ojos", "recuerda", "duda",
+    "llora",
+    "sonríe",
+    "susurra",
+    "tiembla",
+    "miedo",
+    "lágrima",
+    "silencio",
+    "respira",
+    "rostro",
+    "ojos",
+    "recuerda",
+    "duda",
 }
 ESTABLISHING_WORDS = {
-    "ciudad", "edificio", "calle", "paisaje", "montaña", "habitación", "casa",
-    "noche", "amanecer", "atardecer", "exterior", "interior",
+    "ciudad",
+    "edificio",
+    "calle",
+    "paisaje",
+    "montaña",
+    "habitación",
+    "casa",
+    "noche",
+    "amanecer",
+    "atardecer",
+    "exterior",
+    "interior",
 }
 
 
@@ -208,14 +242,16 @@ class CinematicPlanner:
         return "Sonido ambiente y efectos sincronizados con la acción"
 
 
-def build_production_document(source: Path, scenes: list[Scene], shots: list[Shot]) -> dict[str, object]:
+def build_production_document(
+    source: Path, scenes: list[Scene], shots: list[Shot]
+) -> dict[str, object]:
     total_duration = round(sum(shot.estimated_duration_seconds for shot in shots), 1)
     return {
         "schema_version": "1.0",
         "project": {
             "title": source.stem,
             "source_file": str(source.resolve()),
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "generator": "Davinci-agent / Orizon Studio",
         },
         "production_summary": {

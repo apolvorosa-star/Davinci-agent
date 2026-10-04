@@ -32,6 +32,7 @@ Uso mínimo::
     )
     # Usa archivo_listo_para_whisper directamente en Transcriber.transcribe()
 """
+
 from __future__ import annotations
 
 import os
@@ -40,8 +41,6 @@ import subprocess
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
-
 
 # ===========================================================================
 # 1) LISTA COMPLETA DE EXTENSIONES SOPORTADAS
@@ -54,28 +53,118 @@ from typing import Optional
 #  - Streaming / cámaras: h264, h265, hevc, mjpeg
 # ===========================================================================
 SUPPORTED_AUDIO_EXTENSIONS: set[str] = {
-    ".3ga", ".aac", ".ac3", ".aif", ".aiff", ".alac", ".amr", ".ape",
-    ".au", ".caf", ".dts", ".flac", ".gsm", ".m4a", ".m4b", ".mid", ".midi",
-    ".mka", ".mlp", ".mod", ".mp1", ".mp2", ".mp3", ".mpc", ".oga",
-    ".ogg", ".oma", ".opus", ".pcm", ".qcp", ".ra", ".ram", ".snd", ".spx",
-    ".tta", ".voc", ".vox", ".wav", ".wma", ".wv", ".xwm",
+    ".3ga",
+    ".aac",
+    ".ac3",
+    ".aif",
+    ".aiff",
+    ".alac",
+    ".amr",
+    ".ape",
+    ".au",
+    ".caf",
+    ".dts",
+    ".flac",
+    ".gsm",
+    ".m4a",
+    ".m4b",
+    ".mid",
+    ".midi",
+    ".mka",
+    ".mlp",
+    ".mod",
+    ".mp1",
+    ".mp2",
+    ".mp3",
+    ".mpc",
+    ".oga",
+    ".ogg",
+    ".oma",
+    ".opus",
+    ".pcm",
+    ".qcp",
+    ".ra",
+    ".ram",
+    ".snd",
+    ".spx",
+    ".tta",
+    ".voc",
+    ".vox",
+    ".wav",
+    ".wma",
+    ".wv",
+    ".xwm",
 }
 
 SUPPORTED_VIDEO_EXTENSIONS: set[str] = {
-    ".264", ".265", ".3g2", ".3gp", ".amv", ".asf", ".avi", ".bik",
-    ".dav", ".divx", ".dv", ".dvr-ms", ".f4v", ".flv", ".gxf", ".h264",
-    ".h265", ".hevc", ".k3g", ".m1v", ".m2p", ".m2t", ".m2ts", ".m2v",
-    ".m4v", ".mkv", ".mod", ".moov", ".mov", ".mp2v", ".mp4", ".mp4v",
-    ".mpe", ".mpeg", ".mpeg1", ".mpeg2", ".mpeg4", ".mpg", ".mpv", ".mts",
-    ".mxf", ".nsv", ".nut", ".ogm", ".ogv", ".ogx", ".pva", ".qt",
-    ".rm", ".rmvb", ".roq", ".swf", ".tod", ".ts", ".tts", ".vcd",
-    ".vc1", ".vob", ".vp9", ".webm", ".wm", ".wmv", ".wtv", ".xesc",
+    ".264",
+    ".265",
+    ".3g2",
+    ".3gp",
+    ".amv",
+    ".asf",
+    ".avi",
+    ".bik",
+    ".dav",
+    ".divx",
+    ".dv",
+    ".dvr-ms",
+    ".f4v",
+    ".flv",
+    ".gxf",
+    ".h264",
+    ".h265",
+    ".hevc",
+    ".k3g",
+    ".m1v",
+    ".m2p",
+    ".m2t",
+    ".m2ts",
+    ".m2v",
+    ".m4v",
+    ".mkv",
+    ".mod",
+    ".moov",
+    ".mov",
+    ".mp2v",
+    ".mp4",
+    ".mp4v",
+    ".mpe",
+    ".mpeg",
+    ".mpeg1",
+    ".mpeg2",
+    ".mpeg4",
+    ".mpg",
+    ".mpv",
+    ".mts",
+    ".mxf",
+    ".nsv",
+    ".nut",
+    ".ogm",
+    ".ogv",
+    ".ogx",
+    ".pva",
+    ".qt",
+    ".rm",
+    ".rmvb",
+    ".roq",
+    ".swf",
+    ".tod",
+    ".ts",
+    ".tts",
+    ".vcd",
+    ".vc1",
+    ".vob",
+    ".vp9",
+    ".webm",
+    ".wm",
+    ".wmv",
+    ".wtv",
+    ".xesc",
     ".xvid",
 }
 
-SUPPORTED_MEDIA_EXTENSIONS: set[str] = (
-    SUPPORTED_AUDIO_EXTENSIONS | SUPPORTED_VIDEO_EXTENSIONS
-)
+SUPPORTED_MEDIA_EXTENSIONS: set[str] = SUPPORTED_AUDIO_EXTENSIONS | SUPPORTED_VIDEO_EXTENSIONS
 
 # Alias para compatibilidad con main.py / worker.py / watcher.py
 MEDIA_EXTENSIONS = SUPPORTED_MEDIA_EXTENSIONS
@@ -153,7 +242,6 @@ def normalize_media_path(
 
     name = p.name
     if len(name) > 220:
-        stem = p.stem[:180]
         warnings.append(
             f"Nombre de archivo muy largo ({len(name)} chars); "
             "podría dar problemas en algunos sistemas."
@@ -192,8 +280,14 @@ def _find_tool(binary: str) -> str | None:
         return shutil.which(binary)
     # Rutas típicas de instalación estática de FFmpeg en Windows
     candidates_win = [
-        Path(os.environ.get("PROGRAMFILES", r"C:\Program Files")) / "FFmpeg" / "bin" / f"{binary}.exe",
-        Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)")) / "FFmpeg" / "bin" / f"{binary}.exe",
+        Path(os.environ.get("PROGRAMFILES", r"C:\Program Files"))
+        / "FFmpeg"
+        / "bin"
+        / f"{binary}.exe",
+        Path(os.environ.get("PROGRAMFILES(X86)", r"C:\Program Files (x86)"))
+        / "FFmpeg"
+        / "bin"
+        / f"{binary}.exe",
         Path.home() / "scoop" / "shims" / f"{binary}.exe",
         Path.home() / "AppData" / "Local" / "Microsoft" / "WinGet" / "Packages" / f"{binary}.exe",
     ]
@@ -267,7 +361,7 @@ def media_sanity_check(raw_path: str | os.PathLike[str]) -> MediaSanityReport:
         )
 
     # FFmpeg disponible?
-    ok_ver, ver, ffmpeg_path, _ = ffmpeg_available()
+    ok_ver, ver, _ffmpeg_path, _ = ffmpeg_available()
     report.ffmpeg_available = ok_ver
     report.ffmpeg_version = ver
 
@@ -277,9 +371,16 @@ def media_sanity_check(raw_path: str | os.PathLike[str]) -> MediaSanityReport:
         try:
             out = subprocess.check_output(
                 [
-                    ffprobe, "-v", "error", "-select_streams", "a:0",
-                    "-show_entries", "stream=codec_name,sample_rate,channels,duration",
-                    "-of", "default=noprint_wrappers=1", str(normalized),
+                    ffprobe,
+                    "-v",
+                    "error",
+                    "-select_streams",
+                    "a:0",
+                    "-show_entries",
+                    "stream=codec_name,sample_rate,channels,duration",
+                    "-of",
+                    "default=noprint_wrappers=1",
+                    str(normalized),
                 ],
                 stderr=subprocess.DEVNULL,
                 timeout=20,
@@ -297,7 +398,19 @@ def media_sanity_check(raw_path: str | os.PathLike[str]) -> MediaSanityReport:
 
     if report.codec_probe:
         codec = report.codec_probe.get("codec_name", "").lower()
-        if codec and codec not in {"pcm_s16le", "pcm_s16be", "aac", "mp3", "opus", "flac", "vorbis", "ac3", "eac3", "dts", "wavpack"}:
+        if codec and codec not in {
+            "pcm_s16le",
+            "pcm_s16be",
+            "aac",
+            "mp3",
+            "opus",
+            "flac",
+            "vorbis",
+            "ac3",
+            "eac3",
+            "dts",
+            "wavpack",
+        }:
             report.warnings.append(
                 f"Códec de audio '{codec}' no es estándar para Whisper; "
                 "se recomienda transcodificación automática (se hará)."
@@ -309,13 +422,17 @@ def media_sanity_check(raw_path: str | os.PathLike[str]) -> MediaSanityReport:
 # 5) Transcodificación automática → WAV 16kHz mono 16-bit PCM (formato nativo Whisper)
 # ===========================================================================
 _WHISPER_NATIVE_ARGS = [
-    "-ac", "1",          # mono
-    "-ar", "16000",      # 16 kHz sample rate
-    "-sample_fmt", "s16",  # PCM 16-bit little endian
-    "-vn",               # sin vídeo
-    "-sn",               # sin subtítulos
-    "-map", "0:a:0",     # primera pista de audio
-    "-y",                # sobreescribe salida
+    "-ac",
+    "1",  # mono
+    "-ar",
+    "16000",  # 16 kHz sample rate
+    "-sample_fmt",
+    "s16",  # PCM 16-bit little endian
+    "-vn",  # sin vídeo
+    "-sn",  # sin subtítulos
+    "-map",
+    "0:a:0",  # primera pista de audio
+    "-y",  # sobreescribe salida
 ]
 
 
@@ -333,7 +450,15 @@ def _transcode_to_whisper_native(
     """Convierte ``source`` a WAV 16kHz mono s16. Devuelve (dest, warnings, cmd)."""
     warnings: list[str] = []
     dest = _random_temp_path(temp_folder, ".wav")
-    cmd = [ffmpeg_path, "-hide_banner", "-nostdin", "-i", str(source)] + _WHISPER_NATIVE_ARGS + [str(dest)]
+    cmd = [
+        ffmpeg_path,
+        "-hide_banner",
+        "-nostdin",
+        "-i",
+        str(source),
+        *_WHISPER_NATIVE_ARGS,
+        str(dest),
+    ]
     try:
         proc = subprocess.run(
             cmd,
@@ -363,7 +488,7 @@ def _transcode_to_whisper_native(
 # ===========================================================================
 def ensure_readable_for_whisper(
     raw_path: str | os.PathLike[str],
-    temp_folder: Optional[str | os.PathLike[str]] = None,
+    temp_folder: str | os.PathLike[str] | None = None,
     force_transcode: bool = False,
     timeout_per_file_s: int = 1200,
 ) -> TranscodeResult:
@@ -401,7 +526,18 @@ def ensure_readable_for_whisper(
     needs_transcode = force_transcode or bool(
         codec
         and codec
-        not in {"pcm_s16le", "pcm_s16be", "aac", "mp3", "opus", "flac", "vorbis", "ac3", "eac3", "dts"}
+        not in {
+            "pcm_s16le",
+            "pcm_s16be",
+            "aac",
+            "mp3",
+            "opus",
+            "flac",
+            "vorbis",
+            "ac3",
+            "eac3",
+            "dts",
+        }
     )
 
     ok_ff, _ver, ffmpeg_path, _ = ffmpeg_available()
@@ -421,7 +557,10 @@ def ensure_readable_for_whisper(
         # Intentar transcodificar
         try:
             dest_path, tw, cmd = _transcode_to_whisper_native(
-                info.normalized_path, tf, ffmpeg_path, timeout_s=timeout_per_file_s,
+                info.normalized_path,
+                tf,
+                ffmpeg_path,
+                timeout_s=timeout_per_file_s,
             )
             warnings.extend(tw)
             warnings.append(
@@ -435,7 +574,7 @@ def ensure_readable_for_whisper(
                 warnings=warnings,
                 transcode_command=cmd,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             warnings.append(f"[TRANSCODE FALLÓ] {exc}. Se intentará con el archivo original.")
             return TranscodeResult(
                 ready_path=info.normalized_path,

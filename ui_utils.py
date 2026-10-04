@@ -37,5 +37,5 @@ def read_text_file(path: Path) -> str:
     """Lee un archivo de texto devolviendo una cadena vacía si no existe."""
     if not path.exists():
         return ""
-    with open(path, "r", encoding="utf-8", errors="replace") as f:
+    with open(path, encoding="utf-8", errors="replace") as f:
         return f.read()

@@ -4,6 +4,7 @@ Implementación directa vía ``requests`` al endpoint oficial ``/v1/messages``.
 No requiere el SDK de Anthropic (así reducimos el tamaño del paquete
 distribuido con PyInstaller).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,7 +18,6 @@ from .base import (
     RateLimitError,
     parse_retry_after,
 )
-
 
 _DEFAULT_BASE_URL = "https://api.anthropic.com"
 _DEFAULT_MAX_TOKENS = 4096
@@ -40,9 +40,7 @@ class AnthropicProvider(BaseProvider):
     # ------------------------------------------------------------------
     def validate(self) -> None:
         if not self.model:
-            raise ValueError(
-                "[anthropic] Falta 'model' (ej: claude-3-haiku-20240307)."
-            )
+            raise ValueError("[anthropic] Falta 'model' (ej: claude-3-haiku-20240307).")
         if not self.api_key:
             raise ValueError(
                 "[anthropic] Falta 'api_key'. Define la variable "
@@ -64,7 +62,7 @@ class AnthropicProvider(BaseProvider):
             # /models; en ese caso consideramos "alive" si hubo respuesta HTTP
             # con código conocido (no ConnectionError).
             return resp.status_code in {200, 401, 403}
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     # ------------------------------------------------------------------
@@ -116,12 +114,9 @@ class AnthropicProvider(BaseProvider):
                         detail = f" - {err.get('message', '')}"
                     elif isinstance(err, str):
                         detail = f" - {err}"
-                except Exception:  # noqa: BLE001
+                except Exception:
                     detail = ""
-                message = (
-                    f"[anthropic:{self.name}] HTTP {resp.status_code} "
-                    f"en {url}{detail}"
-                )
+                message = f"[anthropic:{self.name}] HTTP {resp.status_code} " f"en {url}{detail}"
                 if resp.status_code == 429:
                     raise RateLimitError(
                         message,
@@ -141,8 +136,7 @@ class AnthropicProvider(BaseProvider):
                 return "".join(parts)
             err = data.get("error") if isinstance(data, dict) else None
             raise ValueError(
-                f"[anthropic:{self.name}] Formato inesperado de "
-                f"respuesta: {err or data}"
+                f"[anthropic:{self.name}] Formato inesperado de " f"respuesta: {err or data}"
             )
 
         text, latency_ms = self._with_retries(_call_once)

@@ -1,4 +1,3 @@
-```python
 # src/routes/index.py
 from flask import Flask, render_template
 
@@ -10,4 +9,3 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
-```

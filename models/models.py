@@ -1,5 +1,5 @@
 from llama_cpp import Llama
-import os
+
 
 class Modelo:
     def __init__(self, modelo_path):
@@ -9,11 +9,6 @@ class Modelo:
 
     def generar_texto(self, prompt, max_tokens=512):
         # Ejecuta la inferencia nativa con los parámetros correctos
-        respuesta = self.modelo(
-            prompt,
-            max_tokens=max_tokens,
-            stop=["</s>"],
-            echo=False
-        )
+        respuesta = self.modelo(prompt, max_tokens=max_tokens, stop=["</s>"], echo=False)
         # Extrae limpiamente el texto de la respuesta de Llama
         return respuesta["choices"][0]["text"]

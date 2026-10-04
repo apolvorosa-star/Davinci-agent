@@ -11,6 +11,7 @@ Internamente delega todo el ciclo de vida:
 * Parseo final JSON/YouTube  →  lógica local idéntica a siempre (extracción
   robusta de JSON con balanceo de llaves, soporte markdown `` ```json ``).
 """
+
 from __future__ import annotations
 
 import json
@@ -28,7 +29,6 @@ from .providers import (
     ProviderFactory,
     ProviderResponse,
 )
-
 
 _LOG = logging.getLogger(__name__)
 
@@ -100,11 +100,7 @@ class AIEngine:
         self._settings: dict[str, Any] = self._load_settings(self._config_path)
 
         # --- Construcción bloque ``ai:`` ---------------------------------
-        ai_cfg = (
-            self._settings.get("ai")
-            or self._settings.get("models", {}).get("ollama")
-            or {}
-        )
+        ai_cfg = self._settings.get("ai") or self._settings.get("models", {}).get("ollama") or {}
         # Si el yaml venía en formato viejo (sólo ``models.ollama.*``), lo
         # migramos automáticamente al nuevo esquema ``ai.providers.ollama.*``
         if "providers" not in ai_cfg:
@@ -118,13 +114,9 @@ class AIEngine:
         self._build_providers()
 
         # --- FallbackChainExecutor (orquesta + fallback) ----------------
-        default_name = str(
-            self.ai_cfg.get("default_provider") or "ollama"
-        ).strip().lower()
+        default_name = str(self.ai_cfg.get("default_provider") or "ollama").strip().lower()
         fallback = self.ai_cfg.get("fallback_chain") or []
-        fallback_list = (
-            list(fallback) if isinstance(fallback, (list, tuple)) else [fallback]
-        )
+        fallback_list = list(fallback) if isinstance(fallback, (list, tuple)) else [fallback]
         self._executor: FallbackChainExecutor = FallbackChainExecutor(
             providers=self._providers,
             default_provider_name=default_name,
@@ -158,7 +150,7 @@ class AIEngine:
             )
             return {"ai": dict(_DEFAULT_AI_CFG)}
         try:
-            with open(config_path, "r", encoding="utf-8") as f:
+            with open(config_path, encoding="utf-8") as f:
                 loaded = yaml.safe_load(f) or {}
             if not isinstance(loaded, dict):
                 raise ValueError("settings.yaml debe contener un diccionario en su raíz.")
@@ -188,9 +180,7 @@ class AIEngine:
                     "enabled": True,
                     "url": legacy.get("url", "http://localhost:11434"),
                     "model": legacy.get("model", "llama3"),
-                    "system_prompt": _DEFAULT_AI_CFG["providers"]["ollama"][
-                        "system_prompt"
-                    ],
+                    "system_prompt": _DEFAULT_AI_CFG["providers"]["ollama"]["system_prompt"],
                 },
             },
         }
@@ -211,9 +201,7 @@ class AIEngine:
         """
         ai_cfg = self.ai_cfg or {}
         providers_cfg: dict[str, Any] = ai_cfg.get("providers") or {}
-        default_name = str(
-            ai_cfg.get("default_provider") or "ollama"
-        ).strip().lower()
+        default_name = str(ai_cfg.get("default_provider") or "ollama").strip().lower()
         fallback = ai_cfg.get("fallback_chain") or []
         if not isinstance(fallback, (list, tuple)):
             fallback = [fallback]
@@ -236,20 +224,16 @@ class AIEngine:
         for name in desired_names:
             raw_cfg = providers_cfg.get(name)
             if not isinstance(raw_cfg, dict):
-                self._provider_errors[name] = (
-                    f"No existe ai.providers.{name} en settings.yaml."
-                )
+                self._provider_errors[name] = f"No existe ai.providers.{name} en settings.yaml."
                 continue
             try:
-                self._providers[name] = self._factory.build(
-                    name, raw_cfg, ai_root_cfg=ai_cfg
-                )
+                self._providers[name] = self._factory.build(name, raw_cfg, ai_root_cfg=ai_cfg)
                 _LOG.info(
                     "AIEngine: inicializado provider [%s] modelo=%s",
                     name,
                     self._providers[name].model,
                 )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 self._provider_errors[name] = f"{type(exc).__name__}: {exc}"
                 _LOG.warning(
                     "AIEngine: no se pudo inicializar provider [%s]: %s",
@@ -303,15 +287,11 @@ class AIEngine:
         return self._parse_response(raw)
 
     def _build_prompt(self, transcript: str, filename: str | None = None) -> str:
-        context = (
-            f"Nombre del archivo multimedia: {filename}\n" if filename else ""
-        )
+        context = f"Nombre del archivo multimedia: {filename}\n" if filename else ""
         temperature_hint = ""
         t = self.ai_cfg.get("temperature")
         if t is not None:
-            temperature_hint = (
-                f"\n\n[Instrucción de temperatura/creatividad: {float(t):.2f}]\n"
-            )
+            temperature_hint = f"\n\n[Instrucción de temperatura/creatividad: {float(t):.2f}]\n"
         return (
             "Eres un experto en YouTube SEO. A partir de la siguiente "
             "transcripción y del nombre del archivo, genera un JSON válido "
@@ -354,9 +334,7 @@ class AIEngine:
         if not raw:
             return {}
 
-        match = re.search(
-            r"```(?:json)?\s*([\s\S]*?)\s*```", raw, flags=re.IGNORECASE
-        )
+        match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", raw, flags=re.IGNORECASE)
         candidates: list[str] = []
         if match:
             candidates.append(match.group(1).strip())
@@ -406,12 +384,8 @@ class AIEngine:
         if not isinstance(chapters, list):
             chapters = []
         return {
-            "titulo": str(
-                data.get("titulo") or data.get("title") or ""
-            ).strip(),
-            "descripcion": str(
-                data.get("descripcion") or data.get("description") or ""
-            ).strip(),
+            "titulo": str(data.get("titulo") or data.get("title") or "").strip(),
+            "descripcion": str(data.get("descripcion") or data.get("description") or "").strip(),
             "capitulos": chapters,
             "respuesta_cruda": raw,
             "generado_en_epoch": int(time.time()),
@@ -433,6 +407,7 @@ class AIEngine:
         plataformas que estén habilitadas en ``settings.yaml``).
         """
         from .social_media import SocialMediaManager
+
         manager = SocialMediaManager(settings=settings, ai_engine=self)
         return manager.generate_all(transcript, filename=filename)
 
@@ -445,12 +420,14 @@ class AIEngine:
     ) -> Any:
         """Genera contenido para UNA sola plataforma por nombre."""
         from .social_media import SocialMediaManager
+
         manager = SocialMediaManager(settings=settings, ai_engine=self)
         return manager.generate_platform(platform_name, transcript, filename=filename)
 
     def social_media_status(self, settings: dict[str, Any] | None = None) -> dict[str, Any]:
         """Resumen de plataformas habilitadas y configuración activa."""
         from .social_media import SocialMediaManager
+
         manager = SocialMediaManager(settings=settings, ai_engine=self)
         return {
             "available_platforms": manager.available_platforms(),

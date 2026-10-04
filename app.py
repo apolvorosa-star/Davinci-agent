@@ -5,6 +5,7 @@ se abre la **interfaz gráfica** de escritorio (CustomTkinter).
 
 Si necesitas la consola / CLI usa ``python main.py [args]``.
 """
+
 from __future__ import annotations
 
 import sys
@@ -20,13 +21,14 @@ def _enable_crash_dump() -> None:
         log_path = Path(__file__).resolve().parent / ".tmp" / "crash.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         faulthandler.enable(open(log_path, "a", encoding="utf-8"))
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
 
 
 def main_cli() -> int:
     """Redirige a main.main() por si alguien invoca app.py desde CLI con args."""
     from main import main
+
     return main()
 
 
@@ -39,16 +41,19 @@ def main() -> int:
     try:
         from core.gui.app_gui import launch_gui
         from main import load_settings
+
         return launch_gui(settings=load_settings())
     except KeyboardInterrupt:  # pragma: no cover
         return 130
     except Exception as exc:  # pragma: no cover - feedback último recurso
         import traceback
+
         traceback.print_exc()
         try:
             # Mostrar tanto por consola como en un popup si tkinter está disponible
             import tkinter as tk
             from tkinter import messagebox
+
             root = tk.Tk()
             root.withdraw()
             messagebox.showerror(

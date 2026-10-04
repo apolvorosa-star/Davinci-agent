@@ -31,12 +31,13 @@ Características profesionales:
     ejecuta :meth:`~BaseSocialPlatform.validate` garantizando que no hay overruns.
   * **Modo batch / individual**: genera para todas las plataformas o una sola.
 """
+
 from __future__ import annotations
 
 from .base import (
     BaseSocialPlatform,
-    PlatformContent,
     PlatformConfig,
+    PlatformContent,
     SocialMediaPlatformError,
 )
 from .manager import (
@@ -44,13 +45,12 @@ from .manager import (
     SocialMediaManager,
     build_social_report,
 )
-from .platforms.youtube import YouTubeContent, YouTubePlatform
+from .platforms.facebook import FacebookContent, FacebookPlatform
 from .platforms.instagram import InstagramContent, InstagramPlatform
+from .platforms.linkedin import LinkedInContent, LinkedInPlatform
 from .platforms.tiktok import TikTokContent, TikTokPlatform
 from .platforms.twitter_x import XTwitterContent, XTwitterPlatform
-from .platforms.facebook import FacebookContent, FacebookPlatform
-from .platforms.linkedin import LinkedInContent, LinkedInPlatform
-
+from .platforms.youtube import YouTubeContent, YouTubePlatform
 
 __all__ = [
     # base

@@ -1,19 +1,25 @@
 """Subpaquete de plataformas concretas de redes sociales."""
+
 from __future__ import annotations
 
-from .youtube import YouTubeContent, YouTubePlatform
+from .facebook import FacebookContent, FacebookPlatform
 from .instagram import InstagramContent, InstagramPlatform
+from .linkedin import LinkedInContent, LinkedInPlatform
 from .tiktok import TikTokContent, TikTokPlatform
 from .twitter_x import XTwitterContent, XTwitterPlatform
-from .facebook import FacebookContent, FacebookPlatform
-from .linkedin import LinkedInContent, LinkedInPlatform
-
+from .youtube import YouTubeContent, YouTubePlatform
 
 __all__ = [
-    "YouTubeContent", "YouTubePlatform",
-    "InstagramContent", "InstagramPlatform",
-    "TikTokContent", "TikTokPlatform",
-    "XTwitterContent", "XTwitterPlatform",
-    "FacebookContent", "FacebookPlatform",
-    "LinkedInContent", "LinkedInPlatform",
+    "FacebookContent",
+    "FacebookPlatform",
+    "InstagramContent",
+    "InstagramPlatform",
+    "LinkedInContent",
+    "LinkedInPlatform",
+    "TikTokContent",
+    "TikTokPlatform",
+    "XTwitterContent",
+    "XTwitterPlatform",
+    "YouTubeContent",
+    "YouTubePlatform",
 ]

@@ -1,0 +1,16 @@
+services:
+  davinci-agent:
+    build: .
+    image: davinci-agent:latest
+    env_file: .env          # API keys (ver .env.example)
+    volumes:
+      - ./input:/app/input
+      - ./output:/app/output
+      - ./config:/app/config
+      - whisper-cache:/root/.cache/whisper   # persiste el modelo entre arranques
+    # Modo watcher: procesa automaticamente lo que caiga en ./input.
+    # Para un archivo concreto: docker compose run --rm davinci-agent video.mp4
+    command: ["--watch"]
+
+volumes:
+  whisper-cache:

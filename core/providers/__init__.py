@@ -24,12 +24,10 @@ Uso rápido::
     ollama = factory.build("ollama", ollama_cfg, ai_root_cfg)
     print(ollama.health_check())
 """
+
 from __future__ import annotations
 
-# ---------------------------------------------------------------------------
-# env_loader
-# ---------------------------------------------------------------------------
-from .env_loader import expand_env_vars
+from .anthropic import AnthropicProvider
 
 # ---------------------------------------------------------------------------
 # base (tipos / interfaz común)
@@ -43,6 +41,11 @@ from .base import (
 )
 
 # ---------------------------------------------------------------------------
+# env_loader
+# ---------------------------------------------------------------------------
+from .env_loader import expand_env_vars
+
+# ---------------------------------------------------------------------------
 # factory (ProviderFactory + FallbackChainExecutor + helper build_provider)
 # ---------------------------------------------------------------------------
 from .factory import (
@@ -50,6 +53,7 @@ from .factory import (
     ProviderFactory,
     build_provider,
 )
+from .google import GoogleGeminiProvider
 
 # ---------------------------------------------------------------------------
 # Proveedores concretos
@@ -61,9 +65,6 @@ from .openai_compatible import (
     OpenAIProvider,
     OpenRouterProvider,
 )
-from .anthropic import AnthropicProvider
-from .google import GoogleGeminiProvider
-
 
 # Aliases de compatibilidad hacia atrás: las clases antiguas siguen existiendo
 # con los mismos nombres, aunque el fichero del yaml y la registry ahora usen
@@ -83,7 +84,7 @@ def _ensure_provider_registry() -> dict[str, type[BaseProvider]]:
     global _PROVIDER_FACTORY_SINGLETON
     if _PROVIDER_FACTORY_SINGLETON is None:
         _PROVIDER_FACTORY_SINGLETON = ProviderFactory()
-    return dict(_PROVIDER_FACTORY_SINGLETON._registry)  # noqa: SLF001  (copy view)
+    return dict(_PROVIDER_FACTORY_SINGLETON._registry)
 
 
 PROVIDER_REGISTRY: dict[str, type[BaseProvider]] = _ensure_provider_registry()

@@ -4,6 +4,7 @@ Conecta vía HTTP local al endpoint oficial ``POST /api/generate``. No requiere
 el SDK Python de Ollama; funciona con ``requests`` estándar para reducir el
 tamaño del paquete distribuido (PyInstaller).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -29,13 +30,9 @@ class OllamaProvider(BaseProvider):
     def validate(self) -> None:
         """Valida que existan ``url`` y ``model``."""
         if not self.base_url:
-            raise ValueError(
-                "[ollama] Falta 'url' (ej: http://localhost:11434)."
-            )
+            raise ValueError("[ollama] Falta 'url' (ej: http://localhost:11434).")
         if not self.model:
-            raise ValueError(
-                "[ollama] Falta 'model' (ej: llama3, qwen2.5, deepseek-r1…)."
-            )
+            raise ValueError("[ollama] Falta 'model' (ej: llama3, qwen2.5, deepseek-r1…).")
 
     # ------------------------------------------------------------------
     # health_check  (red ligera: GET /api/tags)
@@ -52,7 +49,7 @@ class OllamaProvider(BaseProvider):
                 timeout=min(5.0, float(self.config.timeout)),
             )
             return 200 <= resp.status_code < 400
-        except Exception:  # noqa: BLE001  (queremos capturar TODO)
+        except Exception:
             return False
 
     # ------------------------------------------------------------------

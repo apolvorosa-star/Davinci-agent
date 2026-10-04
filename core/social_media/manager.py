@@ -8,12 +8,14 @@ resto de la aplicación (UI, CLI, watcher, worker). Coordina:
 * Generación en paralelo / secuencial de contenido para cada red.
 * Validación post-generación y reporting unificado.
 """
+
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field, asdict
-from pathlib import Path
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import UTC
+from typing import Any
 
 from .base import (
     BaseSocialPlatform,
@@ -21,13 +23,12 @@ from .base import (
     PlatformContent,
     SocialMediaPlatformError,
 )
-from .platforms.youtube import YouTubePlatform
+from .platforms.facebook import FacebookPlatform
 from .platforms.instagram import InstagramPlatform
+from .platforms.linkedin import LinkedInPlatform
 from .platforms.tiktok import TikTokPlatform
 from .platforms.twitter_x import XTwitterPlatform
-from .platforms.facebook import FacebookPlatform
-from .platforms.linkedin import LinkedInPlatform
-
+from .platforms.youtube import YouTubePlatform
 
 _LOG = logging.getLogger(__name__)
 
@@ -39,12 +40,12 @@ _LOG = logging.getLogger(__name__)
 class GeneratedContentBundle:
     """Contenedor de los resultados de TODAS las plataformas habilitadas."""
 
-    youtube: Optional[Any] = None
-    instagram: Optional[Any] = None
-    tiktok: Optional[Any] = None
-    twitter_x: Optional[Any] = None
-    facebook: Optional[Any] = None
-    linkedin: Optional[Any] = None
+    youtube: Any | None = None
+    instagram: Any | None = None
+    tiktok: Any | None = None
+    twitter_x: Any | None = None
+    facebook: Any | None = None
+    linkedin: Any | None = None
     errors: dict[str, str] = field(default_factory=dict)
     generated_at: str = ""
 
@@ -82,8 +83,8 @@ def _build_platform(
     name: str,
     platform_cfg_block: dict[str, Any] | None,
     global_cfg: dict[str, Any] | None,
-    ai_callable: Callable[[str, Optional[str]], str],
-) -> Optional[BaseSocialPlatform]:
+    ai_callable: Callable[[str, str | None], str],
+) -> BaseSocialPlatform | None:
     """Construye una plataforma concreta aplicando herencia de configuración."""
     cls = _PLATFORM_REGISTRY.get(name.lower())
     if cls is None:
@@ -124,10 +125,12 @@ class SocialMediaManager:
         self,
         settings: dict[str, Any] | None = None,
         ai_engine: Any = None,
-        ai_callable: Optional[Callable[[str, Optional[str]], str]] = None,
+        ai_callable: Callable[[str, str | None], str] | None = None,
     ) -> None:
         self.settings = settings or {}
-        social_cfg = (self.settings.get("social_media") or {}) if isinstance(self.settings, dict) else {}
+        social_cfg = (
+            (self.settings.get("social_media") or {}) if isinstance(self.settings, dict) else {}
+        )
         self._global_defaults = social_cfg.get("defaults", {}) or {}
         self._platforms_cfg = social_cfg.get("platforms", {}) or {}
 
@@ -148,6 +151,7 @@ class SocialMediaManager:
     def _lazy_ai_generate(self, prompt: str, system: str | None = None) -> str:
         if self._ai_engine_cache is None:
             from core.ai_engine import AIEngine
+
             self._ai_engine_cache = AIEngine()
         return self._ai_engine_cache.generate(prompt, system)
 
@@ -185,8 +189,9 @@ class SocialMediaManager:
     ) -> GeneratedContentBundle:
         """Genera contenido para todas las plataformas habilitadas."""
         bundle = GeneratedContentBundle()
-        from datetime import datetime, timezone
-        bundle.generated_at = datetime.now(timezone.utc).isoformat()
+        from datetime import datetime
+
+        bundle.generated_at = datetime.now(UTC).isoformat()
 
         name_to_attr = {
             "youtube": "youtube",
@@ -205,7 +210,7 @@ class SocialMediaManager:
                 content = platform.generate(transcript, filename=filename, context=context)
                 setattr(bundle, attr, content)
                 _LOG.info("SocialMediaManager: [%s] OK", plat_name)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 short = f"{type(exc).__name__}: {exc}"
                 bundle.errors[plat_name] = short
                 _LOG.warning("SocialMediaManager: [%s] falló -> %s", plat_name, short)
@@ -269,11 +274,27 @@ def build_social_report(bundle: GeneratedContentBundle) -> str:
 def _render_section(lines: list[str], data: dict[str, Any], indent: str = "  ") -> None:
     """Renderiza recursivamente el contenido de una plataforma en TXT."""
     order = [
-        "platform", "title", "body", "description", "caption", "headline",
-        "summary", "hashtags", "tags", "cta", "chapters", "capitulos",
-        "stories", "reels", "feed_posts", "carousel",
-        "tweets", "thread", "hooks",
-        "summary_points", "highlights",
+        "platform",
+        "title",
+        "body",
+        "description",
+        "caption",
+        "headline",
+        "summary",
+        "hashtags",
+        "tags",
+        "cta",
+        "chapters",
+        "capitulos",
+        "stories",
+        "reels",
+        "feed_posts",
+        "carousel",
+        "tweets",
+        "thread",
+        "hooks",
+        "summary_points",
+        "highlights",
         "warnings",
     ]
     rendered_keys: set[str] = set()

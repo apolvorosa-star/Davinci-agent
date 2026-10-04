@@ -19,13 +19,16 @@ Se re-exporta :func:`build_provider` como helper de nivel módulo — es
 equivalente a ``ProviderFactory().build(...)`` y mantiene la misma firma que
 tenía antiguamente para no romper importaciones directas.
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from .anthropic import AnthropicProvider
 from .base import BaseProvider, ProviderConfig, ProviderResponse
+from .google import GoogleGeminiProvider
 from .ollama import OllamaProvider
 from .openai_compatible import (
     MistralProvider,
@@ -33,9 +36,6 @@ from .openai_compatible import (
     OpenAIProvider,
     OpenRouterProvider,
 )
-from .anthropic import AnthropicProvider
-from .google import GoogleGeminiProvider
-
 
 _LOG = logging.getLogger(__name__)
 
@@ -71,9 +71,7 @@ class ProviderFactory:
         if not name or not isinstance(name, str):
             raise ValueError("ProviderFactory.register: nombre inválido.")
         if not issubclass(provider_cls, BaseProvider):
-            raise TypeError(
-                "ProviderFactory.register: la clase debe heredar de BaseProvider."
-            )
+            raise TypeError("ProviderFactory.register: la clase debe heredar de BaseProvider.")
         self._registry[name.strip().lower()] = provider_cls
 
     def _register_defaults(self) -> None:
@@ -131,13 +129,9 @@ class ProviderFactory:
         if not isinstance(provider_raw_cfg, dict) or not provider_raw_cfg:
             raise ValueError(f"Configuración vacía para el proveedor [{key}].")
         if provider_raw_cfg.get("enabled", True) is False:
-            raise ValueError(
-                f"Proveedor [{key}] marcado como enabled:false en settings.yaml."
-            )
+            raise ValueError(f"Proveedor [{key}] marcado como enabled:false en settings.yaml.")
 
-        cfg = ProviderConfig.from_dict(
-            key, provider_raw_cfg, ai_root_cfg=ai_root_cfg
-        )
+        cfg = ProviderConfig.from_dict(key, provider_raw_cfg, ai_root_cfg=ai_root_cfg)
         provider_cls = self._registry[key]
         provider = provider_cls(cfg)
         provider.validate()
@@ -180,8 +174,7 @@ class FallbackChainExecutor:
         if not isinstance(self.providers, dict):
             raise ValueError("FallbackChainExecutor.providers debe ser un dict.")
         self.providers = {
-            str(k).strip().lower(): v for k, v in self.providers.items()
-            if isinstance(k, str)
+            str(k).strip().lower(): v for k, v in self.providers.items() if isinstance(k, str)
         }
         if not isinstance(self.default_provider_name, str):
             self.default_provider_name = ""
@@ -251,14 +244,10 @@ class FallbackChainExecutor:
         for name in order:
             provider = self.providers.get(name)
             if provider is None:  # pragma: no cover - guard defensivo
-                errors.append(
-                    (name, f"proveedor '{name}' no encontrado en map de providers.")
-                )
+                errors.append((name, f"proveedor '{name}' no encontrado en map de providers."))
                 continue
             try:
-                resp = provider.generate(
-                    prompt, system_prompt=system_prompt, json_mode=json_mode
-                )
+                resp = provider.generate(prompt, system_prompt=system_prompt, json_mode=json_mode)
                 self.logger.info(
                     "FallbackChainExecutor: OK con [%s] (model=%s latencia=%dms len=%d)",
                     name,
@@ -267,7 +256,7 @@ class FallbackChainExecutor:
                     len(resp.text),
                 )
                 return resp
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 short = f"{type(exc).__name__}: {exc}"
                 errors.append((name, short))
                 self.logger.warning(
@@ -279,8 +268,7 @@ class FallbackChainExecutor:
 
         # Todos fallaron: error claro con histórico
         lines = [
-            "Fallaron TODOS los proveedores de IA en la fallback chain. "
-            "Histórico por proveedor:"
+            "Fallaron TODOS los proveedores de IA en la fallback chain. " "Histórico por proveedor:"
         ]
         lines.extend(f"  - [{n}] {m}" for n, m in errors)
         raise RuntimeError("\n".join(lines))
@@ -310,6 +298,4 @@ def build_provider(
     Se mantiene **exclusivamente** por compatibilidad hacia atrás. Nuevo
     código debería instanciar :class:`ProviderFactory` explícitamente.
     """
-    return _get_default_factory().build(
-        provider_name, provider_raw_cfg, ai_root_cfg=ai_root_cfg
-    )
+    return _get_default_factory().build(provider_name, provider_raw_cfg, ai_root_cfg=ai_root_cfg)

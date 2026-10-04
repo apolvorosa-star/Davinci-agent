@@ -1,0 +1,30 @@
+.git
+.github
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Secretos y config local
+.env
+.env.*
+!.env.example
+config/settings.user.yaml
+
+# Datos de ejecucion (se montan como volumenes)
+output/
+input/
+.tmp/
+*.log
+
+# Python / herramientas
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+tests/
+
+# Node / scaffold
+node_modules/
