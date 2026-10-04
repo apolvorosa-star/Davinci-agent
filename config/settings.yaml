@@ -11,6 +11,12 @@ models:
   whisper:
     name: base
     language: es
+tts:
+  enabled: true
+  voice: es-ES-ElviraNeural
+  rate: '+0%'
+  dub_video: true
+  burn_subtitles: true
 parameters:
   chunk_duration: 30
   max_context: 4096

@@ -22,6 +22,7 @@ from core.media_io import (
 )
 from core.social_media import build_social_report
 from core.transcriber import Transcriber
+from core.tts import generate_voiceover, mux_voiceover, segments_to_srt
 from main import (
     _safe_write_json,
     _safe_write_text,
@@ -181,6 +182,40 @@ class ProcessingWorker(threading.Thread):
 
             _safe_write_json(job_folder / "resultado_youtube.json", payload)
             _safe_write_json(job_folder / "contenido_redes_sociales.json", payload)
+
+            # Voz en off (TTS) + subtítulos + vídeo doblado (opcional)
+            tts_cfg = self.settings.get("tts", {}) or {}
+            if tts_cfg.get("enabled", False):
+                try:
+                    self._send("status", "Generando voz en off (TTS)...")
+                    srt_path = segments_to_srt(
+                        transcription.get("segments", []), job_folder / "subtitulos.srt"
+                    )
+                    audio_path = generate_voiceover(
+                        transcription.get("text", ""),
+                        job_folder / "voz_en_off.mp3",
+                        voice=tts_cfg.get("voice", "es-ES-ElviraNeural"),
+                        rate=tts_cfg.get("rate", "+0%"),
+                    )
+                    logger.info("Worker: voz en off generada → %s", audio_path.name)
+                    if tts_cfg.get("dub_video") and self.media_path.suffix.lower() in {
+                        ".mp4",
+                        ".mkv",
+                        ".mov",
+                        ".avi",
+                        ".webm",
+                    }:
+                        self._send("status", "Creando vídeo doblado con subtítulos...")
+                        mux_voiceover(
+                            self.media_path,
+                            audio_path,
+                            job_folder / "video_doblado.mp4",
+                            srt_path if tts_cfg.get("burn_subtitles", True) else None,
+                        )
+                        logger.info("Worker: video_doblado.mp4 listo")
+                except Exception as tts_exc:
+                    logger.warning("Worker: TTS/doblado falló (no bloquea): %s", tts_exc)
+                    self._send("warning", f"Voz en off: {tts_exc}")
 
             record_job(
                 output_folder,

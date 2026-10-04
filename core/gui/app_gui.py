@@ -14,6 +14,7 @@ Características:
 from __future__ import annotations
 
 import json
+import os
 import queue
 import threading
 import tkinter as tk
@@ -752,8 +753,12 @@ class DavinciApp(ctk.CTk):
         self.publish_job_menu.grid(row=0, column=1, sticky="ew", padx=6, pady=10)
 
         ctk.CTkButton(
-            header, text="🔄 Actualizar", width=120, command=self._refresh_publish_jobs
-        ).grid(row=0, column=2, padx=10, pady=10)
+            header, text="� Voz", width=80, command=self._play_voiceover
+        ).grid(row=0, column=2, padx=4, pady=10)
+
+        ctk.CTkButton(
+            header, text="�🔄 Actualizar", width=120, command=self._refresh_publish_jobs
+        ).grid(row=0, column=3, padx=10, pady=10)
 
         self.publish_scroll = ctk.CTkScrollableFrame(
             tab,
@@ -903,6 +908,24 @@ class DavinciApp(ctk.CTk):
     def _open_publish_url(self, url: str, platform_name: str) -> None:
         webbrowser.open(url)
         self._append_log("INFO", f"🌐 Abriendo página de subida de {platform_name}…")
+
+    def _play_voiceover(self) -> None:
+        """Reproduce voz_en_off del trabajo seleccionado con el reproductor del sistema."""
+        folder = self.publish_jobs.get(self.publish_job_menu.get())
+        if not folder:
+            return
+        audio = next(
+            (p for p in (folder / "voz_en_off.mp3", folder / "voz_en_off.wav") if p.exists()),
+            None,
+        )
+        if not audio:
+            self._append_log("WARN", "Este trabajo no tiene voz en off generada.")
+            return
+        try:
+            os.startfile(str(audio))
+            self._append_log("INFO", f"🔊 Reproduciendo {audio.name}…")
+        except OSError:
+            open_folder(audio.parent)
 
     # =====================================================================
     # �🔩 Footer

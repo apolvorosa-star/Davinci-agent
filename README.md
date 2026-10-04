@@ -72,6 +72,7 @@ core/
   providers/     # BaseProvider + Ollama, OpenAI-compatible, Anthropic, Google
                  # + FallbackChainExecutor y retry con respeto de Retry-After
   social_media/  # generadores por plataforma (youtube, instagram, tiktok, ...)
+  tts.py         # voz en off (edge-tts, fallback SAPI) + SRT + video doblado
   gui/           # interfaz CustomTkinter
 main.py          # CLI / watcher
 app.py           # lanzador GUI
