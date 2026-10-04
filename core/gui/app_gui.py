@@ -17,6 +17,7 @@ import json
 import queue
 import threading
 import tkinter as tk
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox
@@ -59,6 +60,16 @@ PLATFORMS_ORDERED = [
     ("facebook", "Facebook", "👥"),
     ("linkedin", "LinkedIn", "💼"),
 ]
+
+# Páginas de subida de cada plataforma (vía semi-automática)
+PUBLISH_URLS = {
+    "youtube": "https://studio.youtube.com",
+    "instagram": "https://www.instagram.com",
+    "tiktok": "https://www.tiktok.com/upload",
+    "twitter_x": "https://x.com/compose/post",
+    "facebook": "https://www.facebook.com",
+    "linkedin": "https://www.linkedin.com/feed/",
+}
 
 
 # ===========================================================================
@@ -125,6 +136,7 @@ class DavinciApp(ctk.CTk):
             "⚙️ Config",
             "📜 Log",
             "📊 Resultados",
+            "🚀 Publicar",
         ):
             self.tabview.add(tab_name)
 
@@ -134,6 +146,7 @@ class DavinciApp(ctk.CTk):
         self._build_tab_config()
         self._build_tab_log()
         self._build_tab_results()
+        self._build_tab_publish()
         self._build_footer()
 
         # Drag & drop vía windnd (solo Windows). Se retrasa para que la ventana
@@ -718,7 +731,181 @@ class DavinciApp(ctk.CTk):
             self.result_cards.append((card, folder_path or Path(".")))
 
     # =====================================================================
-    # 🔩 Footer
+    # � Tab Publicar (semi-automático: copiar copy + abrir página de subida)
+    # =====================================================================
+    def _build_tab_publish(self) -> None:
+        tab = self.tabview.tab("🚀 Publicar")
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+
+        header = ctk.CTkFrame(tab)
+        header.grid(row=0, column=0, sticky="ew", pady=(10, 8))
+        header.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            header, text="🚀 Publicar contenido:", font=ctk.CTkFont(size=13, weight="bold")
+        ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+
+        self.publish_job_menu = ctk.CTkOptionMenu(
+            header, values=["(sin trabajos)"], command=self._on_publish_job_selected
+        )
+        self.publish_job_menu.grid(row=0, column=1, sticky="ew", padx=6, pady=10)
+
+        ctk.CTkButton(
+            header, text="🔄 Actualizar", width=120, command=self._refresh_publish_jobs
+        ).grid(row=0, column=2, padx=10, pady=10)
+
+        self.publish_scroll = ctk.CTkScrollableFrame(
+            tab,
+            label_text="Selecciona un trabajo completado — Copia el texto y pégalo en la web de cada red",
+        )
+        self.publish_scroll.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 12))
+        self.publish_scroll.grid_columnconfigure(0, weight=1)
+
+        # job_label -> Path del job_folder
+        self.publish_jobs: dict[str, Path] = {}
+        self.publish_cards: list[ctk.CTkFrame] = []
+        self._refresh_publish_jobs()
+
+    def _refresh_publish_jobs(self) -> None:
+        """Rellena el desplegable con jobs completados que tienen contenido social."""
+        output_folder = self.project_root / self.paths_cfg.get("output", "output")
+        jobs_file = output_folder / "jobs.json"
+        self.publish_jobs = {}
+        labels: list[str] = []
+
+        if jobs_file.exists():
+            try:
+                jobs = json.loads(jobs_file.read_text(encoding="utf-8"))
+            except Exception:
+                jobs = []
+            if isinstance(jobs, list):
+                for job in reversed(jobs):
+                    if job.get("status") != "completado":
+                        continue
+                    folder = job.get("job_folder")
+                    if not folder:
+                        continue
+                    content_json = Path(folder) / "contenido_redes_sociales.json"
+                    if not content_json.exists():
+                        continue
+                    name = job.get("nombre") or Path(folder).name
+                    ts = (job.get("timestamp") or "")[:16].replace("T", " ")
+                    label = f"{name}  ({ts})"
+                    self.publish_jobs[label] = Path(folder)
+                    labels.append(label)
+
+        if not labels:
+            labels = ["(sin trabajos)"]
+        self.publish_job_menu.configure(values=labels)
+        self.publish_job_menu.set(labels[0])
+        self._on_publish_job_selected(labels[0])
+
+    def _on_publish_job_selected(self, label: str) -> None:
+        for card in self.publish_cards:
+            try:
+                card.destroy()
+            except tk.TclError:
+                pass
+        self.publish_cards = []
+
+        folder = self.publish_jobs.get(label)
+        if not folder:
+            return
+        content_json = folder / "contenido_redes_sociales.json"
+        try:
+            data = json.loads(content_json.read_text(encoding="utf-8"))
+        except Exception as exc:
+            self._append_log("ERROR", f"No se pudo leer {content_json.name}: {exc}")
+            return
+
+        social = data.get("social_media", {}) or {}
+        row = 0
+        for key, name, emoji in PLATFORMS_ORDERED:
+            entry = social.get(key)
+            if not isinstance(entry, dict):
+                continue
+            copy_text = self._platform_copy_text(key, entry)
+            if not copy_text.strip():
+                continue
+
+            card = ctk.CTkFrame(self.publish_scroll, corner_radius=8)
+            card.grid(row=row, column=0, sticky="ew", pady=4, padx=2)
+            card.grid_columnconfigure(0, weight=1)
+            row += 1
+
+            ctk.CTkLabel(
+                card,
+                text=f"{emoji}  {name}",
+                font=ctk.CTkFont(size=13, weight="bold"),
+                anchor="w",
+            ).grid(row=0, column=0, sticky="w", padx=10, pady=(8, 2))
+
+            preview = ctk.CTkTextbox(card, height=110, wrap="word")
+            preview.grid(row=1, column=0, columnspan=3, sticky="ew", padx=10, pady=4)
+            preview.insert("1.0", copy_text)
+            preview.configure(state="disabled")
+
+            ctk.CTkButton(
+                card,
+                text="📋 Copiar",
+                width=110,
+                command=lambda t=copy_text, n=name: self._copy_publish_text(t, n),
+            ).grid(row=2, column=0, sticky="w", padx=10, pady=(2, 10))
+
+            url = PUBLISH_URLS.get(key)
+            if url:
+                ctk.CTkButton(
+                    card,
+                    text="🌐 Abrir subida",
+                    width=130,
+                    fg_color="transparent",
+                    border_width=1,
+                    command=lambda u=url, n=name: self._open_publish_url(u, n),
+                ).grid(row=2, column=0, sticky="w", padx=(130, 10), pady=(2, 10))
+
+            self.publish_cards.append(card)
+
+        if row == 0:
+            ctk.CTkLabel(
+                self.publish_scroll,
+                text="Este trabajo no tiene contenido de redes generado.",
+                text_color="gray70",
+            ).grid(row=0, column=0, padx=10, pady=20)
+
+    @staticmethod
+    def _platform_copy_text(key: str, entry: dict) -> str:
+        """Compone el texto listo para pegar en la plataforma."""
+        parts: list[str] = []
+        title = (entry.get("title") or "").strip()
+        body = (entry.get("body") or "").strip()
+        if title:
+            parts.append(title)
+        if body:
+            parts.append(body)
+        hashtags = entry.get("hashtags") or []
+        if hashtags:
+            parts.append(" ".join(f"#{str(h).lstrip('#')}" for h in hashtags))
+        tags = entry.get("tags") or []
+        if key == "youtube" and tags:
+            parts.append("Tags: " + ", ".join(str(t) for t in tags))
+        return "\n\n".join(parts)
+
+    def _copy_publish_text(self, text: str, platform_name: str) -> None:
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            self._append_log("INFO", f"📋 Copy de {platform_name} copiado al portapapeles.")
+            self.footer_status.configure(text=f"📋 {platform_name}: copiado — pégalo en la web.")
+        except tk.TclError as exc:
+            self._append_log("ERROR", f"No se pudo copiar al portapapeles: {exc}")
+
+    def _open_publish_url(self, url: str, platform_name: str) -> None:
+        webbrowser.open(url)
+        self._append_log("INFO", f"🌐 Abriendo página de subida de {platform_name}…")
+
+    # =====================================================================
+    # �🔩 Footer
     # =====================================================================
     def _build_footer(self) -> None:
         footer = ctk.CTkFrame(self, height=34, corner_radius=0, fg_color="transparent")
@@ -743,6 +930,8 @@ class DavinciApp(ctk.CTk):
         current = self.tabview.get()
         if current == "📊 Resultados":
             self._refresh_results()
+        elif current == "🚀 Publicar":
+            self._refresh_publish_jobs()
 
     def _enable_drag_and_drop(self) -> None:
         """Subclasifica el WndProc nativo para capturar WM_DROPFILES manualmente.
